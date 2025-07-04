@@ -1,0 +1,626 @@
+swagger: '2.0'
+info:
+  title: Auto Test Case API
+  version: '1.0'
+tags:
+  - name: Project
+    description: Project management endpoints
+  - name: Document
+    description: Document management endpoints
+  - name: Task
+    description: Task management endpoints
+  - name: Scenario
+    description: Test scenario management endpoints
+paths:
+  /api/ping:
+    get:
+      summary: ping function in ping controller
+      tags: [Project]
+      operationId: controllers.ping.ping
+      responses:
+        '200':
+          description: Successful operation
+  /api/project/create:
+    post:
+      summary: create project
+      tags: [Project]
+      consumes:
+        - application/json
+        - multipart/form-data
+      parameters:
+        - name: name
+          in: formData
+          required: true
+          type: string
+          description: Project name
+        - name: description
+          in: formData
+          required: false
+          type: string
+          description: Project description
+        - name: owner
+          in: formData
+          required: false
+          type: string
+          description: Project owner
+        - name: is_current
+          in: formData
+          required: false
+          type: boolean
+          description: Mark the first uploaded document as current
+        - name: file
+          in: formData
+          required: true
+          type: file
+          description: Project document(s)
+          collectionFormat: multi
+      operationId: controllers.project.create
+      responses:
+        '200':
+          description: Successful operation
+  /api/project/get:
+    get:
+      summary: get project by id (includes tasks and test scenarios)
+      tags: [Project]
+      produces:
+        - application/json
+      parameters:
+        - name: id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project to retrieve
+      operationId: controllers.project.get
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              project_id:
+                type: string
+              name:
+                type: string
+              tasks:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    task_id:
+                      type: string
+                    test_scenarios:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          scenario:
+                            type: string
+                          test_cases:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                test_case:
+                                  type: string
+                                requirement:
+                                  type: string
+                                test_objective:
+                                  type: string
+                                scenario:
+                                  type: string
+                                expected_result:
+                                  type: string
+  /api/project/delete:
+    delete:
+      summary: delete project by id
+      tags: [Project]
+      produces:
+        - application/json
+      parameters:
+        - name: id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project to delete
+      operationId: controllers.project.delete
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/projects:
+    get:
+      summary: get all project
+      tags: [Project]
+      produces:
+        - application/json
+      operationId: controllers.project.list
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/project/update:
+    put:
+      summary: update project information by id
+      tags: [Project]
+      operationId: controllers.project.update
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/project/document/upload:
+    post:
+      summary: upload document for project
+      tags: [Document]
+      operationId: controllers.document.upload_document
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/project/document/list:
+    get:
+      summary: list documents for a project
+      tags: [Document]
+      operationId: controllers.document.get_documents
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/project/document/delete:
+    delete:
+      summary: delete document by id
+      tags: [Document]
+      operationId: controllers.document.delete_document
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/project/document/list_by_project:
+    get:
+      summary: List all documents for a project
+      tags: [Document]
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project to list documents for
+      operationId: controllers.document.get_documents_by_project
+      responses:
+        '200':
+          description: Successful operation
+  /api/project/document/detail:
+    get:
+      summary: Get detail for a document
+      tags: [Document]
+      produces:
+        - application/json
+      parameters:
+        - name: document_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the document to retrieve
+      operationId: controllers.document.get_document_detail
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/task/create:
+    post:
+      summary: create task
+      tags: [Task]
+      produces:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              project_id:
+                type: string
+                format: uuid
+                example: "<project_id>"
+              task_name:
+                type: string
+                example: "Feature: Practice Test Automation Login"
+              url:
+                type: string
+                format: uri
+                example: "https://practicetestautomation.com/practice-test-login"
+              context:
+                type: array
+                items:
+                  type: string
+                example:
+                  - "Open page"
+                  - "Type username incorrectUser into Username field"
+                  - "Type password Password123 into Password field"
+                  - "Click on button by XPATH = \"//button[@id='submit']\""
+                  - "Verify error message is displayed"
+              output:
+                type: string
+                example: "Your username is invalid"
+            required:
+              - project_id
+              - task_name
+              - url
+              - context
+              - output
+      operationId: controllers.task.create
+      responses:
+        '200':
+          description: Successful operation
+  /api/task/execute:
+    post:
+      summary: execute task by project id and task id
+      tags: [Task]
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              project_id:
+                type: string
+                example: "<project_id>"
+              task_id:
+                type: string
+                example: "<task_id>"
+            required:
+              - task_id
+              - project_id
+      operationId: controllers.task.ex_task
+      responses:
+        '200':
+          description: Successful operation
+  /api/task/get:
+    get:
+      summary: get task by id (includes test scenarios)
+      tags: [Task]
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project to retrieve
+        - name: task_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the task to retrieve
+      operationId: controllers.task.get
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              task_id:
+                type: string
+              test_scenarios:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    scenario:
+                      type: string
+                    test_cases:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          test_case:
+                            type: string
+                          requirement:
+                            type: string
+                          test_objective:
+                            type: string
+                          scenario:
+                            type: string
+                          expected_result:
+                            type: string
+
+  /api/tasks:
+    get:
+      summary: get tasks by project id
+      tags: [Task]
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project to retrieve
+      operationId: controllers.task.get_all
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/task/screenshots:
+    get:
+      summary: get screenshots by id
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project to retrieve
+        - name: task_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the task to retrieve
+      operationId: controllers.task.get_screenshots
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/task/screenshot:
+    get:
+      summary: get screenshots by image path
+      produces:
+        - application/json
+      parameters:
+        - name: path
+          in: query
+          required: true
+          type: string
+          description: The path image to retrieve
+      operationId: controllers.task.get_screenshot
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/task/delete:
+    delete:
+      summary: delete task by id
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project to delete
+        - name: task_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the task to delete
+      operationId: controllers.task.delete
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/task/update:
+    put:
+      summary: update task information by id
+      produces:
+        - application/json
+      operationId: controllers.task.update
+      responses:
+        '200':
+          description: Successful operation
+
+  /api/scenario/save:
+    post:
+      summary: Save all scenarios for a project
+      tags: [Scenario]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              project_id:
+                type: string
+              scenarios:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    lastUpdated:
+                      type: string
+                    version:
+                      type: string
+                    priority:
+                      type: string
+                      enum: [High, Medium, Low]
+                    testCases:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          name:
+                            type: string
+                          expectedResult:
+                            type: string
+                          steps:
+                            type: array
+                            items:
+                              type: string
+                          tags:
+                            type: array
+                            items:
+                              type: string
+                          version:
+                            type: string
+                          lastUpdated:
+                            type: string
+                          testDataSets:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                name:
+                                  type: string
+                                inputData:
+                                  type: object
+                                expectedOutput:
+                                  type: object
+                                version:
+                                  type: string
+                                lastUpdated:
+                                  type: string
+            example:
+              project_id: "your-project-id"
+              scenarios:
+                - id: "scenario-uuid"
+                  name: "Login Performance"
+                  description: "Simulate 20 concurrent users logging in."
+                  lastUpdated: "2024-07-01T12:00:00Z"
+                  version: "1.0"
+                  priority: "High"
+                  testCases:
+                    - id: "case-uuid"
+                      name: "TC_001"
+                      expectedResult: "Average login response time should be less than 3 seconds."
+                      steps: ["Step 1", "Step 2"]
+                      tags: ["performance", "login"]
+                      version: "1.0"
+                      lastUpdated: "2024-07-01T12:00:00Z"
+                      testDataSets:
+                        - id: "dataset-uuid"
+                          name: "Valid User"
+                          inputData: { "username": "user1", "password": "pass" }
+                          expectedOutput: { "status": "success" }
+                          version: "1.0"
+                          lastUpdated: "2024-07-01T12:00:00Z"
+      operationId: controllers.scenario.save_scenarios
+      responses:
+        '200':
+          description: Scenarios saved
+  /api/scenario/list:
+    get:
+      summary: List all scenarios for a project
+      tags: [Scenario]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+      operationId: controllers.scenario.get_scenarios
+      responses:
+        '200':
+          description: List of scenarios
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+                lastUpdated:
+                  type: string
+                version:
+                  type: string
+                priority:
+                  type: string
+                  enum: [High, Medium, Low]
+                testCases:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      expectedResult:
+                        type: string
+                      steps:
+                        type: array
+                        items:
+                          type: string
+                      tags:
+                        type: array
+                        items:
+                          type: string
+                      version:
+                        type: string
+                      lastUpdated:
+                        type: string
+                      testDataSets:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            inputData:
+                              type: object
+                            expectedOutput:
+                              type: object
+                            version:
+                              type: string
+                            lastUpdated:
+                              type: string
+  /api/scenario/update:
+    put:
+      summary: Update a scenario for a project
+      tags: [Scenario]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              project_id:
+                type: string
+              scenario_id:
+                type: string
+              scenario_data:
+                type: object
+      operationId: controllers.scenario.update_scenario
+      responses:
+        '200':
+          description: Scenario updated
+  /api/scenario/delete:
+    delete:
+      summary: Delete a scenario for a project
+      tags: [Scenario]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+        - name: scenario_id
+          in: query
+          required: true
+          type: string
+      operationId: controllers.scenario.delete_scenario
+      responses:
+        '200':
+          description: Scenario deleted

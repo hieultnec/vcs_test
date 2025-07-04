@@ -1,0 +1,141 @@
+{
+   "prefixes":[
+      {
+         "prefix":"/api",
+         "routes":[
+            {
+               "api_name": "ping",
+               "controller":"ping",
+               "function":"ping",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "projects",
+               "controller":"project",
+               "function":"list",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "project/create",
+               "controller":"project",
+               "function":"create",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "project/get",
+               "controller":"project",
+               "function":"get",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "project/update",
+               "controller":"project",
+               "function":"update",
+               "methods": ["PUT"]
+            },
+            {
+               "api_name": "project/delete",
+               "controller":"project",
+               "function":"delete",
+               "methods": ["DELETE"]
+            },
+            {
+               "api_name": "task/create",
+               "controller":"task",
+               "function":"create",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "task/get",
+               "controller":"task",
+               "function":"get",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "task/update",
+               "controller":"task",
+               "function":"update",
+               "methods": ["PUT"]
+            },
+            {
+               "api_name": "task/delete",
+               "controller":"task",
+               "function":"delete",
+               "methods": ["DELETE"]
+            },
+            {
+               "api_name": "task/execute",
+               "controller":"task",
+               "function":"ex_task",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "task/screenshots",
+               "controller":"task",
+               "function":"get_screenshots",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "task/screenshot",
+               "controller":"task",
+               "function":"get_screenshot",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "project/document/upload",
+               "controller": "document",
+               "function": "upload_document",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "project/document/list",
+               "controller": "document",
+               "function": "get_documents",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "project/document/delete",
+               "controller": "document",
+               "function": "delete_document",
+               "methods": ["DELETE"]
+            },
+            {
+               "api_name": "project/document/list_by_project",
+               "controller": "document",
+               "function": "get_documents_by_project",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "project/document/detail",
+               "controller": "document",
+               "function": "get_document_detail",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "scenario/save",
+               "controller": "scenario",
+               "function": "save_scenarios",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "scenario/list",
+               "controller": "scenario",
+               "function": "get_scenarios",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "scenario/update",
+               "controller": "scenario",
+               "function": "update_scenario",
+               "methods": ["PUT"]
+            },
+            {
+               "api_name": "scenario/delete",
+               "controller": "scenario",
+               "function": "delete_scenario",
+               "methods": ["DELETE"]
+            }
+         ]
+      }
+   ]
+}

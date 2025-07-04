@@ -1,0 +1,55 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: dockers/Dockerfile.backend
+    depends_on:
+      - mongodb
+    ports:
+      - "5000:5000"
+    networks:
+      - atc_network
+    env_file:
+      - .env
+    volumes:
+      - lagavue_backend_projects:/app/projects
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - LAVAGUE_TELEMETRY=NONE
+
+  mongodb:
+    image: mongo:latest
+    networks:
+      - atc_network
+    env_file:
+      - .env
+    ports:
+      - 27017:27017
+    volumes:
+      - lagavue_mongodb_data:/data/db
+
+  # frontend:
+  #   build:
+  #     context: .
+  #     dockerfile: dockers/Dockerfile.frontend
+  #   depends_on:
+  #     - mongodb
+  #     - backend
+  #   ports:
+  #     - "5173:5173"
+  #   networks:
+  #     - atc_network
+  #   environment:
+  #     - VITE_BACKEND=http://localhost:5000
+
+
+networks:
+  atc_network:
+    driver: bridge
+
+volumes:
+  lagavue_backend_projects:
+    driver: local
+  lagavue_mongodb_data:
+    driver: local

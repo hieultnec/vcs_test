@@ -1,0 +1,35 @@
+FROM python:3.12-bullseye
+
+
+RUN apt update
+RUN apt install git wget python3-pip -y
+RUN pip install poetry wandb pytest xmltodict uvicorn
+RUN pip install connexion[swagger-ui]
+RUN pip install connexion[flask]
+
+
+# COPY ../backend/chrome_114_amd64.deb /tmp/
+
+# Install Chrome
+# RUN apt-get update && apt-get install -y /tmp/chrome_114_amd64.deb && rm /tmp/chrome_114_amd64.deb
+
+
+
+WORKDIR /LaVague
+ADD ../backend/LaVague ./
+RUN pip install --upgrade pip
+RUN pip install -e .
+RUN pip install -e lavague-core
+RUN pip install -e lavague-integrations/contexts/lavague-contexts-gemini
+#RUN pip install -e lavague-integrations/contexts/lavague-contexts-fireworks
+
+#RUN pip install lavague-contexts-gemini
+
+
+WORKDIR /app
+ADD ../backend ./
+
+RUN pip install -r requirements.txt
+
+EXPOSE 5000
+ENTRYPOINT ["python", "app.py"]

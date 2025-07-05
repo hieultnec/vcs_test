@@ -11,6 +11,10 @@ tags:
     description: Task management endpoints
   - name: Scenario
     description: Test scenario management endpoints
+  - name: TestCase
+    description: Test case management endpoints
+  - name: TestRun
+    description: Test run history management endpoints
 paths:
   /api/ping:
     get:
@@ -624,3 +628,739 @@ paths:
       responses:
         '200':
           description: Scenario deleted
+
+  /api/scenario/get:
+    get:
+      summary: Get a specific scenario by ID
+      tags: [Scenario]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project
+        - name: scenario_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the scenario
+      operationId: controllers.scenario.get_scenario
+      responses:
+        '200':
+          description: Scenario details with test cases
+          schema:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              description:
+                type: string
+              test_cases:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    steps:
+                      type: array
+                      items:
+                        type: string
+                    expected_result:
+                      type: string
+                    status:
+                      type: string
+                      enum: [untested, passed, failed]
+                    version:
+                      type: string
+                    created_at:
+                      type: string
+                      format: date-time
+                    updated_at:
+                      type: string
+                      format: date-time
+
+  /api/test_case/save:
+    post:
+      summary: Save test cases for a scenario
+      tags: [TestCase]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              project_id:
+                type: string
+                description: The ID of the project
+              scenario_id:
+                type: string
+                description: The ID of the scenario
+              test_cases:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: Test case ID (optional, will be generated if not provided)
+                    title:
+                      type: string
+                      description: Test case title
+                    description:
+                      type: string
+                      description: Test case description
+                    steps:
+                      type: array
+                      items:
+                        type: string
+                      description: Test steps
+                    expected_result:
+                      type: string
+                      description: Expected result
+                    status:
+                      type: string
+                      enum: [untested, passed, failed]
+                      description: Test case status
+                    version:
+                      type: string
+                      description: Version number
+            required:
+              - project_id
+              - scenario_id
+              - test_cases
+            example:
+              project_id: "project-123"
+              scenario_id: "scenario-456"
+              test_cases:
+                - title: "Login with valid credentials"
+                  description: "Test user login with correct username and password"
+                  steps:
+                    - "Navigate to login page"
+                    - "Enter valid username"
+                    - "Enter valid password"
+                    - "Click login button"
+                  expected_result: "User should be logged in successfully"
+                  status: "untested"
+                  version: "1.0"
+      operationId: controllers.test_case.save_test_cases
+      responses:
+        '200':
+          description: Test cases saved successfully
+        '400':
+          description: Bad request - missing required parameters
+        '500':
+          description: Internal server error
+
+  /api/test_case/list:
+    get:
+      summary: Get all test cases for a scenario
+      tags: [TestCase]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project
+        - name: scenario_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the scenario
+      operationId: controllers.test_case.get_test_cases
+      responses:
+        '200':
+          description: List of test cases
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: string
+                title:
+                  type: string
+                description:
+                  type: string
+                steps:
+                  type: array
+                  items:
+                    type: string
+                expected_result:
+                  type: string
+                status:
+                  type: string
+                  enum: [untested, passed, failed]
+                version:
+                  type: string
+                created_at:
+                  type: string
+                  format: date-time
+                updated_at:
+                  type: string
+                  format: date-time
+
+  /api/test_case/create:
+    post:
+      summary: Create a new test case
+      tags: [TestCase]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              project_id:
+                type: string
+                description: The ID of the project
+              scenario_id:
+                type: string
+                description: The ID of the scenario
+              test_case_data:
+                type: object
+                properties:
+                  title:
+                    type: string
+                    description: Test case title
+                  description:
+                    type: string
+                    description: Test case description
+                  steps:
+                    type: array
+                    items:
+                      type: string
+                    description: Test steps
+                  expected_result:
+                    type: string
+                    description: Expected result
+                  status:
+                    type: string
+                    enum: [untested, passed, failed]
+                    description: Test case status
+                  version:
+                    type: string
+                    description: Version number
+            required:
+              - project_id
+              - scenario_id
+              - test_case_data
+      operationId: controllers.test_case.create_test_case
+      responses:
+        '200':
+          description: Test case created successfully
+        '400':
+          description: Bad request - missing required parameters
+        '500':
+          description: Internal server error
+
+  /api/test_case/update:
+    put:
+      summary: Update a specific test case
+      tags: [TestCase]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              project_id:
+                type: string
+                description: The ID of the project
+              scenario_id:
+                type: string
+                description: The ID of the scenario
+              test_case_id:
+                type: string
+                description: The ID of the test case
+              update_data:
+                type: object
+                description: Data to update
+                properties:
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  steps:
+                    type: array
+                    items:
+                      type: string
+                  expected_result:
+                    type: string
+                  status:
+                    type: string
+                    enum: [untested, passed, failed]
+                  version:
+                    type: string
+            required:
+              - project_id
+              - scenario_id
+              - test_case_id
+              - update_data
+      operationId: controllers.test_case.update_test_case
+      responses:
+        '200':
+          description: Test case updated successfully
+        '400':
+          description: Bad request - missing required parameters
+        '404':
+          description: Test case not found
+        '500':
+          description: Internal server error
+
+  /api/test_case/delete:
+    delete:
+      summary: Delete a specific test case
+      tags: [TestCase]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project
+        - name: scenario_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the scenario
+        - name: test_case_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the test case
+      operationId: controllers.test_case.delete_test_case
+      responses:
+        '200':
+          description: Test case deleted successfully
+        '400':
+          description: Bad request - missing required parameters
+        '404':
+          description: Test case not found
+        '500':
+          description: Internal server error
+
+  /api/test_case/get:
+    get:
+      summary: Get a specific test case by ID
+      tags: [TestCase]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project
+        - name: scenario_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the scenario
+        - name: test_case_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the test case
+      operationId: controllers.test_case.get_test_case
+      responses:
+        '200':
+          description: Test case details
+          schema:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              description:
+                type: string
+              steps:
+                type: array
+                items:
+                  type: string
+              expected_result:
+                type: string
+              status:
+                type: string
+                enum: [untested, passed, failed]
+              version:
+                type: string
+              created_at:
+                type: string
+                format: date-time
+              updated_at:
+                type: string
+                format: date-time
+        '400':
+          description: Bad request - missing required parameters
+        '404':
+          description: Test case not found
+        '500':
+          description: Internal server error
+
+  /api/test_run/record:
+    post:
+      summary: Record a new test run
+      tags: [TestRun]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              project_id:
+                type: string
+                description: The ID of the project
+              scenario_id:
+                type: string
+                description: The ID of the scenario
+              test_case_id:
+                type: string
+                description: The ID of the test case
+              executed_by:
+                type: string
+                description: User who executed the test
+              status:
+                type: string
+                enum: [pass, fail, skipped]
+                description: Test execution status
+              logs:
+                type: string
+                description: Test execution logs
+              attachment_url:
+                type: string
+                description: URL to test attachments (screenshots, etc.)
+              version:
+                type: string
+                description: Version number
+            required:
+              - project_id
+              - scenario_id
+              - test_case_id
+              - executed_by
+              - status
+            example:
+              project_id: "project-123"
+              scenario_id: "scenario-456"
+              test_case_id: "test-case-789"
+              executed_by: "tester@example.com"
+              status: "pass"
+              logs: "Test executed successfully at 2024-01-15 10:30:00"
+              attachment_url: "https://example.com/screenshots/test-123.png"
+              version: "1.0"
+      operationId: controllers.test_run.record_test_run
+      responses:
+        '200':
+          description: Test run recorded successfully
+        '400':
+          description: Bad request - missing required parameters
+        '500':
+          description: Internal server error
+
+  /api/test_run/list_by_case:
+    get:
+      summary: Get all test runs for a specific test case
+      tags: [TestRun]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project
+        - name: test_case_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the test case
+      operationId: controllers.test_run.get_test_runs_by_case
+      responses:
+        '200':
+          description: List of test runs
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                run_id:
+                  type: string
+                project_id:
+                  type: string
+                scenario_id:
+                  type: string
+                test_case_id:
+                  type: string
+                executed_by:
+                  type: string
+                executed_at:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+                  enum: [pass, fail, skipped]
+                logs:
+                  type: string
+                attachment_url:
+                  type: string
+                version:
+                  type: string
+
+  /api/test_run/latest:
+    get:
+      summary: Get the latest test run for a specific test case
+      tags: [TestRun]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project
+        - name: test_case_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the test case
+      operationId: controllers.test_run.get_latest_test_run
+      responses:
+        '200':
+          description: Latest test run details
+          schema:
+            type: object
+            properties:
+              run_id:
+                type: string
+              project_id:
+                type: string
+              scenario_id:
+                type: string
+              test_case_id:
+                type: string
+              executed_by:
+                type: string
+              executed_at:
+                type: string
+                format: date-time
+              status:
+                type: string
+                enum: [pass, fail, skipped]
+              logs:
+                type: string
+              attachment_url:
+                type: string
+              version:
+                type: string
+        '404':
+          description: No test runs found
+
+  /api/test_run/get:
+    get:
+      summary: Get a specific test run by run_id
+      tags: [TestRun]
+      parameters:
+        - name: run_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the test run
+      operationId: controllers.test_run.get_test_run
+      responses:
+        '200':
+          description: Test run details
+          schema:
+            type: object
+            properties:
+              run_id:
+                type: string
+              project_id:
+                type: string
+              scenario_id:
+                type: string
+              test_case_id:
+                type: string
+              executed_by:
+                type: string
+              executed_at:
+                type: string
+                format: date-time
+              status:
+                type: string
+                enum: [pass, fail, skipped]
+              logs:
+                type: string
+              attachment_url:
+                type: string
+              version:
+                type: string
+        '404':
+          description: Test run not found
+
+  /api/test_run/update:
+    put:
+      summary: Update a specific test run
+      tags: [TestRun]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              run_id:
+                type: string
+                description: The ID of the test run
+              update_data:
+                type: object
+                description: Data to update
+                properties:
+                  status:
+                    type: string
+                    enum: [pass, fail, skipped]
+                  logs:
+                    type: string
+                  attachment_url:
+                    type: string
+            required:
+              - run_id
+              - update_data
+      operationId: controllers.test_run.update_test_run
+      responses:
+        '200':
+          description: Test run updated successfully
+        '400':
+          description: Bad request - missing required parameters
+        '404':
+          description: Test run not found
+        '500':
+          description: Internal server error
+
+  /api/test_run/delete:
+    delete:
+      summary: Delete a specific test run
+      tags: [TestRun]
+      parameters:
+        - name: run_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the test run
+      operationId: controllers.test_run.delete_test_run
+      responses:
+        '200':
+          description: Test run deleted successfully
+        '400':
+          description: Bad request - missing required parameters
+        '404':
+          description: Test run not found
+        '500':
+          description: Internal server error
+
+  /api/test_run/list_by_scenario:
+    get:
+      summary: Get all test runs for a specific scenario
+      tags: [TestRun]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project
+        - name: scenario_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the scenario
+      operationId: controllers.test_run.get_test_runs_by_scenario
+      responses:
+        '200':
+          description: List of test runs for the scenario
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                run_id:
+                  type: string
+                project_id:
+                  type: string
+                scenario_id:
+                  type: string
+                test_case_id:
+                  type: string
+                executed_by:
+                  type: string
+                executed_at:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+                  enum: [pass, fail, skipped]
+                logs:
+                  type: string
+                attachment_url:
+                  type: string
+                version:
+                  type: string
+
+  /api/test_run/list_by_project:
+    get:
+      summary: Get recent test runs for a project
+      tags: [TestRun]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          default: 100
+          description: Maximum number of test runs to return
+      operationId: controllers.test_run.get_test_runs_by_project
+      responses:
+        '200':
+          description: List of recent test runs for the project
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                run_id:
+                  type: string
+                project_id:
+                  type: string
+                scenario_id:
+                  type: string
+                test_case_id:
+                  type: string
+                executed_by:
+                  type: string
+                executed_at:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+                  enum: [pass, fail, skipped]
+                logs:
+                  type: string
+                attachment_url:
+                  type: string
+                version:
+                  type: string

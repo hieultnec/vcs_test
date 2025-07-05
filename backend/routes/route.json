@@ -134,6 +134,96 @@
                "controller": "scenario",
                "function": "delete_scenario",
                "methods": ["DELETE"]
+            },
+            {
+               "api_name": "scenario/get",
+               "controller": "scenario",
+               "function": "get_scenario",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "test_case/save",
+               "controller": "test_case",
+               "function": "save_test_cases",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "test_case/list",
+               "controller": "test_case",
+               "function": "get_test_cases",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "test_case/create",
+               "controller": "test_case",
+               "function": "create_test_case",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "test_case/update",
+               "controller": "test_case",
+               "function": "update_test_case",
+               "methods": ["PUT"]
+            },
+            {
+               "api_name": "test_case/delete",
+               "controller": "test_case",
+               "function": "delete_test_case",
+               "methods": ["DELETE"]
+            },
+            {
+               "api_name": "test_case/get",
+               "controller": "test_case",
+               "function": "get_test_case",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "test_run/record",
+               "controller": "test_run",
+               "function": "record_test_run",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "test_run/list_by_case",
+               "controller": "test_run",
+               "function": "get_test_runs_by_case",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "test_run/latest",
+               "controller": "test_run",
+               "function": "get_latest_test_run",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "test_run/get",
+               "controller": "test_run",
+               "function": "get_test_run",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "test_run/update",
+               "controller": "test_run",
+               "function": "update_test_run",
+               "methods": ["PUT"]
+            },
+            {
+               "api_name": "test_run/delete",
+               "controller": "test_run",
+               "function": "delete_test_run",
+               "methods": ["DELETE"]
+            },
+            {
+               "api_name": "test_run/list_by_scenario",
+               "controller": "test_run",
+               "function": "get_test_runs_by_scenario",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "test_run/list_by_project",
+               "controller": "test_run",
+               "function": "get_test_runs_by_project",
+               "methods": ["GET"]
             }
          ]
       }

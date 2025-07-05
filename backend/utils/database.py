@@ -603,3 +603,54 @@ def get_document_by_id(document_id):
         logger.error("Error getting document by id: %s", e)
         raise e
 
+def get_test_cases(task_id):
+    """Get test cases for a task."""
+    logger.info("Getting test cases for task_id: %s", task_id)
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        test_cases = list(db.test_cases.find({'task_id': task_id}, {'_id': 0}))
+        return test_cases
+    except Exception as e:
+        logger.error("Error getting test cases: %s", e)
+        return []
+
+def save_test_scenarios(task_id, test_scenarios):
+    """Save test scenarios for a task."""
+    logger.info("Saving test scenarios for task_id: %s", task_id)
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        # Delete existing test scenarios for this task
+        db.test_cases.delete_many({'task_id': task_id})
+        # Insert new test scenarios
+        for scenario in test_scenarios:
+            scenario_doc = dict(scenario)
+            scenario_doc['task_id'] = task_id
+            db.test_cases.insert_one(scenario_doc)
+        return True
+    except Exception as e:
+        logger.error("Error saving test scenarios: %s", e)
+        return False
+
+def get_test_scenarios(task_id):
+    """Get test scenarios for a task."""
+    logger.info("Getting test scenarios for task_id: %s", task_id)
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        test_scenarios = list(db.test_cases.find({'task_id': task_id}, {'_id': 0}))
+        return test_scenarios
+    except Exception as e:
+        logger.error("Error getting test scenarios: %s", e)
+        return []
+

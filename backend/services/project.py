@@ -59,9 +59,10 @@ def get(project_id):
         logger.info("Project found: %s", project_id)
         # Fetch all tasks for this project
         tasks = database.get_project_tasks(project_id)
-        # For each task, fetch its test scenarios
+        # For each task, fetch its test scenarios with test cases
+        from services.scenario import ScenarioService
         for t in tasks:
-            t['test_scenarios'] = database.get_test_cases(t['task_id'])
+            t['test_scenarios'] = ScenarioService.get_scenarios(project_id)
         result['tasks'] = tasks
     else:
         logger.warning("Project not found: %s", project_id)

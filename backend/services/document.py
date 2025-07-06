@@ -4,7 +4,6 @@ from datetime import datetime
 from utils import database
 from utils.logger import logger
 import requests
-from services.workflow import get_workflow_config
 
 ALLOWED_EXTENSIONS = {'.txt', '.pdf', '.doc', '.docx', '.xls', '.xlsx'}
 
@@ -13,6 +12,7 @@ def allowed_file(filename):
 
 def upload_document(project_id, file_storage, is_current=False, metadata=None, user=None):
     """Save uploaded file to Dify, then create DB entry with Dify document ID."""
+    from services.workflow import get_workflow_config
     filename = file_storage.filename
     if not allowed_file(filename):
         raise ValueError(f"File type not allowed: {filename}")
@@ -22,36 +22,45 @@ def upload_document(project_id, file_storage, is_current=False, metadata=None, u
     filepath = os.path.join(project_dir, f"{document_id}_{filename}")
     file_storage.save(filepath)
 
-    # Get Dify API URL from workflow config
+    # Get Dify API URL and key from workflow config
     config = get_workflow_config(project_id)
     logger.info(f"Retrieved workflow config for project {project_id}: {config}")
     dify_api_url = None
+    dify_api_key = None
+    
     if config and config.get('variables'):
         for var in config['variables']:
-            if var.get('key') == 'dify_api_url':
+            if var.get('key') == 'dify_api_workflow_upload':
                 dify_api_url = var.get('value')
                 logger.info(f"Found Dify API URL: {dify_api_url}")
-                break
+            elif var.get('key') == 'dify_api_key':
+                dify_api_key = var.get('value')
+                logger.info(f"Found Dify API Key: {dify_api_key[:10]}...")
+    
     if not dify_api_url:
         logger.error(f"No Dify API URL found in config for project {project_id}. Config: {config}")
         raise ValueError("Dify API URL not configured for this project.")
+    
+    if not dify_api_key:
+        logger.error(f"No Dify API Key found in config for project {project_id}")
+        raise ValueError("Dify API Key not configured for this project.")
 
     # Upload to Dify
     try:
         logger.info(f"Starting Dify upload for file: {filename}")
-        headers = {"Authorization": f"Bearer {os.environ.get('DIFY_API_KEY', '')}"}
-        logger.info(f"Dify API Key present: {bool(os.environ.get('DIFY_API_KEY', ''))}")
+        headers = {"Authorization": f"Bearer {dify_api_key}"}
+        logger.info(f"Using Dify API Key from config: {dify_api_key[:10]}...")
         
         files = {
             'file': (filename, open(filepath, 'rb'), file_storage.mimetype)
         }
         data = {
-            'user': user or (metadata.get('user') if metadata else ''),
+            'user': user or (metadata.get('user') if metadata else '') or 'hieult',
             'type': 'document'
         }
         logger.info(f"Dify upload data: {data}")
         
-        upload_url = f"{dify_api_url}/v1/files/upload"
+        upload_url = f"{dify_api_url}"
         logger.info(f"Uploading to Dify URL: {upload_url}")
         
         response = requests.post(upload_url, headers=headers, files=files, data=data)

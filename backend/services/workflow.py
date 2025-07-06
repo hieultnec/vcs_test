@@ -3,6 +3,8 @@ import os
 from datetime import datetime
 from utils import database
 from utils.logger import logger
+from utils.database import get_connection
+from services.document import upload_document
 
 def get_workflow_config(project_id):
     """Get workflow configuration for a project."""
@@ -213,4 +215,26 @@ def get_templates():
         return templates
     except Exception as e:
         logger.error(f"Error getting workflow templates: {str(e)}")
-        raise e 
+        raise e
+
+def get_workflow_template(project_id):
+    """Get workflow input template for a project."""
+    db = get_connection()[MONGODB_DATABASE]
+    template = db.workflow_templates.find_one({'project_id': project_id})
+    if template:
+        template.pop('_id', None)
+    return template or {}
+
+def save_workflow_template(project_id, template):
+    """Save or update workflow input template for a project."""
+    db = get_connection()[MONGODB_DATABASE]
+    db.workflow_templates.update_one(
+        {'project_id': project_id},
+        {'$set': {'project_id': project_id, 'template': template}},
+        upsert=True
+    )
+    return True
+
+def upload_file_to_dify(project_id, file_storage, is_current=False, metadata=None, user=None):
+    """Proxy to upload_document for Dify integration (for workflow controller compatibility)."""
+    return upload_document(project_id, file_storage, is_current, metadata, user) 

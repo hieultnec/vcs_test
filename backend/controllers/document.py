@@ -1,12 +1,12 @@
 from flask import request, send_file
 from utils import return_status
 from utils.logger import logger
-from services import document
 import os
 
 def upload_document():
     """Upload a document for a project."""
     try:
+        from services import document
         project_id = request.form.get('project_id')
         is_current = request.form.get('is_current', 'false').lower() == 'true'
         if 'file' not in request.files or not project_id:
@@ -23,6 +23,7 @@ def upload_document():
 def get_documents():
     """List documents for a project."""
     try:
+        from services import document
         project_id = request.args.get('project_id')
         if not project_id:
             return return_status(400, "project_id is required")
@@ -35,6 +36,7 @@ def get_documents():
 def delete_document():
     """Delete a document by document_id."""
     try:
+        from services import document
         document_id = request.args.get('document_id')
         if not document_id:
             return return_status(400, "document_id is required")
@@ -49,6 +51,7 @@ def delete_document():
 def get_documents_by_project():
     """List all documents for a given project_id."""
     try:
+        from services import document
         project_id = request.args.get('project_id')
         if not project_id:
             return return_status(400, "project_id is required")
@@ -61,6 +64,7 @@ def get_documents_by_project():
 def get_document_detail():
     """Get detail for a document by document_id."""
     try:
+        from services import document
         document_id = request.args.get('document_id')
         if not document_id:
             return return_status(400, "document_id is required")
@@ -75,18 +79,16 @@ def get_document_detail():
 def download_document():
     """Download a document by document_id."""
     try:
+        from services import document
         document_id = request.args.get('document_id')
         if not document_id:
             return return_status(400, "document_id is required")
-        
         doc = document.get_document_detail(document_id)
         if not doc:
             return return_status(404, "Document not found")
-        
         filepath = doc.get('filepath')
         if not filepath or not os.path.exists(filepath):
             return return_status(404, "Document file not found")
-        
         # Send the file for download
         return send_file(
             filepath,
@@ -104,17 +106,13 @@ def serve_document():
         filepath = request.args.get('filepath')
         if not filepath:
             return return_status(400, "filepath is required")
-        
         # Security check: ensure the filepath is within the projects directory
         if not filepath.startswith('projects/') or '..' in filepath:
             return return_status(403, "Access denied")
-        
         if not os.path.exists(filepath):
             return return_status(404, "File not found")
-        
         # Get the filename from the path
         filename = os.path.basename(filepath)
-        
         # Send the file for viewing (not as attachment)
         return send_file(
             filepath,

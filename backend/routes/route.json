@@ -290,6 +290,11 @@
                "controller": "workflow",
                "function": "get_templates",
                "methods": ["GET"]
+            },
+            {
+               "path": "/api/workflow/template",
+               "methods": ["GET", "POST"],
+               "handler": "controllers.workflow.workflow_template"
             }
          ]
       }

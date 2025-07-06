@@ -3,8 +3,7 @@ import os
 from datetime import datetime
 from utils import database
 from utils.logger import logger
-from services import document
-from services.workflow import save_workflow_config
+# from services import document  # Move this import inside the function to avoid circular import
 
 def create(data, files=None):
     """Create a new project with filesystem directory.
@@ -14,6 +13,8 @@ def create(data, files=None):
         files (list): List of uploaded files (optional)
     """
     from flask import request
+    from services.workflow import save_workflow_config
+    from services import document  # moved here
     logger.info("Creating new project with data: %s", data)
     project_id = str(uuid.uuid4())
     
@@ -45,25 +46,38 @@ def create(data, files=None):
     default_variables = [
         {
             "id": str(uuid.uuid4()),
-            "variable_name": "dify_api_url",
-            "key": "dify_api_url",
-            "value": "http://localhost/v1",  # Default local Dify URL
+            "variable_name": "dify_api_workflow_run",
+            "key": "dify_api_workflow_run",
+            "value": "http://localhost/v1/workflows/run",
             "type": "url",
-            "description": "Dify API base URL for document processing"
+            "description": "Dify API workflow run URL for document processing"
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "variable_name": "dify_api_workflow_upload",
+            "key": "dify_api_workflow_upload",
+            "value": "http://localhost/v1/files/upload",
+            "type": "url",
+            "description": "Dify API workflow upload URL for document processing"
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "variable_name": "dify_api_key",
+            "key": "dify_api_key",
+            "value": "app-i7Dx7hOvlnIu6WFHFgfZ9u1F",  # Default local Dify URL
+            "type": "secret",
+            "description": "Dify API key for document processing"
         }
     ]
     try:
         save_workflow_config(project_id, default_variables)
         logger.info("Created default workflow config for project: %s", project_id)
-        
-        # Verify the config was saved by retrieving it
         from services.workflow import get_workflow_config
         verification_config = get_workflow_config(project_id)
         if not verification_config or not verification_config.get('variables'):
             logger.error("Workflow config verification failed for project %s", project_id)
             raise Exception("Failed to verify workflow config creation")
         logger.info("Workflow config verified for project: %s", project_id)
-        
     except Exception as e:
         logger.error("Failed to create workflow config for project %s: %s", project_id, str(e))
         raise e

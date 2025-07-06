@@ -20,6 +20,7 @@ import { useAppDispatch } from "@/hooks/useAppDispatch";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { fetchProject } from "@/store/slices/projectSlice";
 import { fetchScenarios } from "@/store/slices/scenarioSlice";
+import ConfigurationTab from '@/components/project-detail/ConfigurationTab';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -143,17 +144,20 @@ const ProjectDetail = () => {
         {/* Horizontal Tabs */}
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="flex h-fit w-full items-center justify-start rounded-md bg-muted p-1 text-muted-foreground mb-4 overflow-x-auto">
-            <TabsTrigger value="overview" className="w-1/4 text-sm px-4 py-2">
+            <TabsTrigger value="overview" className="w-1/5 text-sm px-4 py-2">
               Overview
             </TabsTrigger>
-            <TabsTrigger value="documents" className="w-1/4 text-sm px-4 py-2">
+            <TabsTrigger value="workflow" className="w-1/5 text-sm px-4 py-2">
+              Workflow
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="w-1/5 text-sm px-4 py-2">
               Documents
             </TabsTrigger>
-            <TabsTrigger value="scenarios" className="w-1/4 text-sm px-4 py-2">
+            <TabsTrigger value="scenarios" className="w-1/5 text-sm px-4 py-2">
               Test Scenarios
             </TabsTrigger>
-            <TabsTrigger value="workflow" className="w-1/4 text-sm px-4 py-2">
-              Workflow
+            <TabsTrigger value="configuration" className="w-1/5 text-sm px-4 py-2">
+              Configuration
             </TabsTrigger>
           </TabsList>
 
@@ -205,21 +209,20 @@ const ProjectDetail = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="workflow">
+            <WorkflowTab projectId={id} />
+          </TabsContent>
+
           <TabsContent value="documents">
-            {id && (
-              <DocumentManager
-                projectId={id}
-                onDocumentChange={handleDocumentChange}
-              />
-            )}
+            <DocumentManager projectId={id} onDocumentChange={handleDocumentChange} />
           </TabsContent>
 
           <TabsContent value="scenarios">
-            {id && <TestScenariosTab projectId={id} />}
+            <TestScenariosTab projectId={id} />
           </TabsContent>
 
-          <TabsContent value="workflow">
-            {id && <WorkflowTab projectId={id} />}
+          <TabsContent value="configuration">
+            <ConfigurationTab projectId={id} />
           </TabsContent>
         </Tabs>
 

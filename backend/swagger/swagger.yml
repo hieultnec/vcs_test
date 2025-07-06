@@ -88,9 +88,9 @@ paths:
           description: Mark the first uploaded document as current
         - name: file
           in: formData
-          required: true
+          required: false
           type: file
-          description: Project document(s)
+          description: Project document(s) (optional, upload after project creation)
           collectionFormat: multi
       operationId: controllers.project.create
       responses:
@@ -225,7 +225,7 @@ paths:
 
   /api/project/document/upload:
     post:
-      summary: Upload document for a project
+      summary: Upload document for a project (uploads to Dify and stores locally)
       tags: [Document]
       consumes:
         - multipart/form-data
@@ -245,6 +245,11 @@ paths:
           required: false
           type: boolean
           description: Mark document as current
+        - name: user
+          in: formData
+          required: false
+          type: string
+          description: User identifier for Dify upload
       operationId: controllers.document.upload_document
       responses:
         '200':
@@ -259,9 +264,9 @@ paths:
               result:
                 $ref: '#/definitions/Document'
         '400':
-          description: Bad request - missing file or project_id
+          description: Bad request - missing file or project_id, or Dify API URL not configured
         '500':
-          description: Internal server error
+          description: Internal server error or Dify upload failed
 
   /api/project/document/list:
     get:
@@ -716,6 +721,101 @@ paths:
                 type: integer
               message:
                 type: string
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
+
+  /api/scenario/save_from_workflow:
+    post:
+      summary: Save test scenarios from workflow output
+      tags: [Scenario]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - project_id
+              - workflow_output
+            properties:
+              project_id:
+                type: string
+                description: Project ID
+              workflow_output:
+                type: object
+                description: Raw workflow output that will be transformed to match the new data structure
+      operationId: controllers.scenario.save_scenarios_from_workflow
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
+
+  /api/scenario/create:
+    post:
+      summary: Create a new test scenario
+      tags: [Scenario]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - project_id
+              - scenario_data
+            properties:
+              project_id:
+                type: string
+                description: Project ID
+              scenario_data:
+                type: object
+                required:
+                  - name
+                  - description
+                  - priority
+                properties:
+                  name:
+                    type: string
+                    description: Scenario name
+                  description:
+                    type: string
+                    description: Scenario description
+                  priority:
+                    type: string
+                    enum: [High, Medium, Low]
+                    description: Scenario priority level
+                  version:
+                    type: string
+                    description: Scenario version (optional, defaults to '1.0')
+      operationId: controllers.scenario.create_scenario
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/Scenario'
         '400':
           description: Bad request - missing required fields
         '500':
@@ -1706,6 +1806,9 @@ definitions:
       filepath:
         type: string
         description: File path on server
+      dify_document_id:
+        type: string
+        description: Dify document ID for external processing
       is_current:
         type: boolean
         description: Whether this is the current document
@@ -1750,18 +1853,25 @@ definitions:
   Scenario:
     type: object
     properties:
-      scenario_id:
+      id:
         type: string
         description: Unique scenario identifier
       project_id:
         type: string
         description: Project ID
-      scenario_name:
+      name:
         type: string
         description: Scenario name
       description:
         type: string
         description: Scenario description
+      priority:
+        type: string
+        enum: [High, Medium, Low]
+        description: Scenario priority level
+      version:
+        type: string
+        description: Scenario version
       test_cases:
         type: array
         items:
@@ -1779,7 +1889,7 @@ definitions:
   TestCase:
     type: object
     properties:
-      test_case_id:
+      id:
         type: string
         description: Unique test case identifier
       project_id:
@@ -1788,21 +1898,27 @@ definitions:
       scenario_id:
         type: string
         description: Scenario ID
-      test_case_name:
+      title:
         type: string
-        description: Test case name
-      requirement:
+        description: Test case title
+      description:
         type: string
-        description: Test requirement
-      test_objective:
-        type: string
-        description: Test objective
-      scenario:
-        type: string
-        description: Test scenario description
+        description: Test case description
+      steps:
+        type: array
+        items:
+          type: string
+        description: List of test steps
       expected_result:
         type: string
         description: Expected test result
+      status:
+        type: string
+        enum: [untested, passed, failed]
+        description: Test case status
+      version:
+        type: string
+        description: Test case version
       created_at:
         type: string
         format: date-time
@@ -1891,7 +2007,7 @@ definitions:
         description: Variable value
       type:
         type: string
-        enum: [ssh_host, ssh_port, document, custom]
+        enum: [ssh_host, ssh_port, document, url, custom]
         description: Variable type
       description:
         type: string

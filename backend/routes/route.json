@@ -118,9 +118,27 @@
                "methods": ["GET"]
             },
             {
+               "api_name": "project/document/serve",
+               "controller": "document",
+               "function": "serve_document",
+               "methods": ["GET"]
+            },
+            {
                "api_name": "scenario/save",
                "controller": "scenario",
                "function": "save_scenarios",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "scenario/save_from_workflow",
+               "controller": "scenario",
+               "function": "save_scenarios_from_workflow",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "scenario/create",
+               "controller": "scenario",
+               "function": "create_scenario",
                "methods": ["POST"]
             },
             {

@@ -19,6 +19,25 @@ def save_scenarios():
         logger.error(f"Failed to save scenarios: {str(e)}")
         return return_status(500, str(e))
 
+def save_scenarios_from_workflow():
+    """Save scenarios from workflow output"""
+    try:
+        data = request.get_json()
+        project_id = data.get('project_id')
+        workflow_output = data.get('workflow_output')
+        
+        if not project_id or not workflow_output:
+            return return_status(400, "project_id and workflow_output are required")
+        
+        success = ScenarioService.save_scenarios_from_workflow(project_id, workflow_output)
+        if success:
+            return return_status(200, "Scenarios saved from workflow output")
+        else:
+            return return_status(500, "Failed to save scenarios from workflow output")
+    except Exception as e:
+        logger.error(f"Failed to save scenarios from workflow: {str(e)}")
+        return return_status(500, str(e))
+
 def get_scenarios():
     try:
         project_id = request.args.get('project_id')
@@ -28,6 +47,25 @@ def get_scenarios():
         return return_status(200, "Success", scenarios)
     except Exception as e:
         logger.error(f"Failed to get scenarios: {str(e)}")
+        return return_status(500, str(e))
+
+def create_scenario():
+    """Create a new scenario"""
+    try:
+        data = request.get_json()
+        project_id = data.get('project_id')
+        scenario_data = data.get('scenario_data')
+        
+        if not project_id or not scenario_data:
+            return return_status(400, "project_id and scenario_data are required")
+        
+        result = ScenarioService.create_scenario(project_id, scenario_data)
+        if result:
+            return return_status(200, "Scenario created successfully", result)
+        else:
+            return return_status(500, "Failed to create scenario")
+    except Exception as e:
+        logger.error(f"Failed to create scenario: {str(e)}")
         return return_status(500, str(e))
 
 def update_scenario():

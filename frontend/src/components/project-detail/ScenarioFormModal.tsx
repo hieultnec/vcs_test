@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,29 +6,29 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
-
-interface ScenarioFormData {
-  name: string;
-  description: string;
-  priority: 'High' | 'Medium' | 'Low';
-}
+import { CreateScenarioData } from '@/services/scenarioService';
 
 interface ScenarioFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  scenario?: ScenarioFormData & { id: string; version: string };
+  scenario?: CreateScenarioData & { id: string; version: string };
   mode: 'create' | 'edit';
+  projectId: string;
+  onSubmit: (data: CreateScenarioData) => Promise<void>;
 }
 
 const ScenarioFormModal: React.FC<ScenarioFormModalProps> = ({ 
   isOpen, 
   onClose, 
   scenario, 
-  mode 
+  mode,
+  projectId,
+  onSubmit
 }) => {
   const [selectedPriority, setSelectedPriority] = React.useState<'High' | 'Medium' | 'Low'>(scenario?.priority || 'Medium');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ScenarioFormData>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateScenarioData>({
     defaultValues: scenario || { name: '', description: '', priority: 'Medium' }
   });
 
@@ -42,18 +41,21 @@ const ScenarioFormModal: React.FC<ScenarioFormModalProps> = ({
     }
   }, [scenario, mode, setValue]);
 
-  const onSubmit = (data: ScenarioFormData) => {
-    const formData = {
-      ...data,
-      priority: selectedPriority,
-      project_id: 'current-project-id', // This should come from context/props
-      version: mode === 'edit' ? scenario?.version : 'v1.0'
-    };
-    console.log(`${mode} scenario:`, formData);
-    // Here you would call the API: POST /api/scenario/create or PUT /api/scenario/update
-    reset();
-    setSelectedPriority('Medium');
-    onClose();
+  const handleFormSubmit = async (data: CreateScenarioData) => {
+    try {
+      setIsSubmitting(true);
+      const formData = {
+        ...data,
+        priority: selectedPriority,
+      };
+      await onSubmit(formData);
+      reset();
+      setSelectedPriority('Medium');
+    } catch (error) {
+      console.error('Failed to submit scenario:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -81,7 +83,7 @@ const ScenarioFormModal: React.FC<ScenarioFormModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name" className="text-sm">Scenario Name</Label>
             <Input
@@ -124,11 +126,11 @@ const ScenarioFormModal: React.FC<ScenarioFormModalProps> = ({
           </div>
 
           <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={handleClose} className="px-4 py-2">
+            <Button type="button" variant="outline" onClick={handleClose} className="px-4 py-2" disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" className="px-4 py-2">
-              {mode === 'create' ? 'Create Scenario' : 'Update Scenario'}
+            <Button type="submit" className="px-4 py-2" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : (mode === 'create' ? 'Create Scenario' : 'Update Scenario')}
             </Button>
           </DialogFooter>
         </form>

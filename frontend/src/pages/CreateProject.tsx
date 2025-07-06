@@ -22,7 +22,6 @@ interface WorkflowVariable {
 
 const CreateProject = () => {
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Form state
   const [currentStep, setCurrentStep] = useState(1);
@@ -34,15 +33,10 @@ const CreateProject = () => {
     status: 'draft'
   });
   
-  // File upload state
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDragOver, setIsDragOver] = useState(false);
-  
   // Variables state
   const [variables, setVariables] = useState<WorkflowVariable[]>([]);
 
-  const totalSteps = 3;
+  const totalSteps = 2;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -50,88 +44,6 @@ const CreateProject = () => {
       ...prev,
       [name]: value
     }));
-  };
-
-  const validateFile = (file: File): boolean => {
-    const allowedTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain',
-      'text/csv'
-    ];
-    const maxSize = 10 * 1024 * 1024; // 10MB
-
-    if (!allowedTypes.includes(file.type)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload PDF, DOCX, TXT, or CSV files only",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    if (file.size > maxSize) {
-      toast({
-        title: "File too large",
-        description: "Please upload a file smaller than 10MB",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const validFiles = files.filter(validateFile);
-    
-    if (validFiles.length > 0) {
-      setUploadedFiles(prev => [...prev, ...validFiles]);
-      toast({
-        title: "Files uploaded successfully",
-        description: `${validFiles.length} file(s) added to project`,
-      });
-    }
-    
-    // Reset the input value to allow selecting the same file again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleFileSelect = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    const validFiles = files.filter(validateFile);
-    
-    if (validFiles.length > 0) {
-      setUploadedFiles(prev => [...prev, ...validFiles]);
-      toast({
-        title: "Files uploaded successfully",
-        description: `${validFiles.length} file(s) added to project`,
-      });
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   // Variable management
@@ -184,24 +96,21 @@ const CreateProject = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.owner || uploadedFiles.length === 0) {
+    if (!formData.name || !formData.owner) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields and upload at least one document",
+        description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
     }
 
-    setIsUploading(true);
-    
     try {
       const createProjectData: CreateProjectData = {
         name: formData.name,
         description: formData.description || undefined,
         owner: formData.owner,
         is_current: true,
-        file: uploadedFiles
       };
 
       const createdProject = await projectService.createProject(createProjectData);
@@ -220,17 +129,7 @@ const CreateProject = () => {
         description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive"
       });
-    } finally {
-      setIsUploading(false);
     }
-  };
-
-  const getFileIcon = (file: File) => {
-    if (file.type.includes('pdf')) return '📄';
-    if (file.type.includes('word')) return '📝';
-    if (file.type.includes('text')) return '📄';
-    if (file.type.includes('csv')) return '📊';
-    return '📄';
   };
 
   const nextStep = () => {
@@ -248,7 +147,7 @@ const CreateProject = () => {
   const renderStepIndicator = () => (
     <div className="mb-8">
       <div className="flex items-center justify-center space-x-4">
-        {[1, 2, 3].map((step) => (
+        {[1, 2].map((step) => (
           <div key={step} className="flex items-center">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
               step <= currentStep 
@@ -269,7 +168,6 @@ const CreateProject = () => {
         <p className="text-sm text-gray-600">
           Step {currentStep} of {totalSteps}: {
             currentStep === 1 ? 'Project Information' :
-            currentStep === 2 ? 'Upload Documents' :
             'Configure Variables (Optional)'
           }
         </p>
@@ -367,106 +265,6 @@ const CreateProject = () => {
             rows={4}
           />
         </div>
-      </CardContent>
-    </Card>
-  );
-
-  const renderDocumentUpload = () => (
-    <Card className="shadow-lg border-gray-200">
-      <CardHeader>
-        <CardTitle className="text-xl flex items-center">
-          <Upload className="w-5 h-5 mr-2" />
-          Upload Documents
-        </CardTitle>
-        <CardDescription>
-          Upload your requirements documents and test specifications
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {uploadedFiles.length === 0 ? (
-          <div 
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-              isDragOver 
-                ? 'border-blue-400 bg-blue-50' 
-                : 'border-gray-300 hover:border-blue-400'
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={handleFileSelect}
-          >
-            <Upload className={`w-12 h-12 mx-auto mb-4 ${
-              isDragOver ? 'text-blue-500' : 'text-gray-400'
-            }`} />
-            <div className="mb-4">
-              <p className="text-lg font-medium text-gray-700">
-                {isDragOver ? 'Drop your files here' : 'Drop your files here'}
-              </p>
-              <p className="text-sm text-gray-500">
-                {isDragOver ? 'Release to upload' : 'or click to browse'}
-              </p>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={handleFileUpload}
-              accept=".pdf,.docx,.txt,.csv"
-              multiple
-              className="hidden"
-            />
-            <Button type="button" variant="outline" className="hover:bg-blue-50">
-              <Upload className="w-4 h-4 mr-2" />
-              Choose Files
-            </Button>
-            <p className="text-xs text-gray-400 mt-2">
-              Supports: PDF, DOCX, TXT, CSV (Max 10MB each)
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Uploaded Files ({uploadedFiles.length})</h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleFileSelect}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add More
-              </Button>
-            </div>
-            
-            <div className="space-y-3">
-              {uploadedFiles.map((file, index) => (
-                <div key={index} className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {getFileIcon(file)} {file.name}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(index)}
-                      className="text-gray-400 hover:text-red-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -598,7 +396,7 @@ const CreateProject = () => {
             Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Project</h1>
-          <p className="text-gray-600">Set up a new test project with documents and workflow variables</p>
+          <p className="text-gray-600">Set up a new test project with workflow variables</p>
         </div>
 
         {/* Step Indicator */}
@@ -607,8 +405,7 @@ const CreateProject = () => {
         {/* Form Content */}
         <div className="max-w-4xl mx-auto">
           {currentStep === 1 && renderProjectInfo()}
-          {currentStep === 2 && renderDocumentUpload()}
-          {currentStep === 3 && renderVariables()}
+          {currentStep === 2 && renderVariables()}
 
           {/* Navigation Buttons */}
           <div className="flex justify-between mt-8">
@@ -625,10 +422,7 @@ const CreateProject = () => {
               <Button
                 type="button"
                 onClick={nextStep}
-                disabled={
-                  (currentStep === 1 && (!formData.name || !formData.owner)) ||
-                  (currentStep === 2 && uploadedFiles.length === 0)
-                }
+                disabled={!formData.name || !formData.owner}
               >
                 Next
               </Button>
@@ -636,20 +430,10 @@ const CreateProject = () => {
               <Button
                 type="submit"
                 onClick={handleSubmit}
-                disabled={isUploading || !formData.name || !formData.owner || uploadedFiles.length === 0}
+                disabled={!formData.name || !formData.owner}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {isUploading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Creating Project...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Create Project
-                  </>
-                )}
+                Create Project
               </Button>
             )}
           </div>

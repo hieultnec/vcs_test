@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Download, Trash2, FileText, Calendar, User, Star, AlertCircle, Eye } from 'lucide-react';
+import { Upload, Download, Trash2, FileText, Calendar, User, Star, AlertCircle, Eye, Link, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ProjectDocument } from '@/services/projectService';
 import { documentService } from '@/services/documentService';
-import DocumentViewer from './DocumentViewer';
+import { useToast } from '@/hooks/use-toast';
 
 interface DocumentManagerProps {
   projectId: string;
@@ -14,12 +14,16 @@ interface DocumentManagerProps {
 }
 
 const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocumentChange }) => {
+  const { toast } = useToast();
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewingDocument, setViewingDocument] = useState<ProjectDocument | null>(null);
   const [viewingDocumentId, setViewingDocumentId] = useState<string | null>(null);
+  const [copyingLink, setCopyingLink] = useState<string | null>(null);
+  const [documentContent, setDocumentContent] = useState<string | null>(null);
+  const [contentLoading, setContentLoading] = useState(false);
 
   useEffect(() => {
     loadDocuments();
@@ -111,16 +115,77 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
   const handleViewDocument = async (doc: ProjectDocument) => {
     try {
       setViewingDocumentId(doc.document_id);
+      setContentLoading(true);
       setError(null);
       
       // Fetch the latest document details to ensure we have the most up-to-date information
       const updatedDocument = await documentService.getDocument(doc.document_id);
       setViewingDocument(updatedDocument);
+      
+      // Load document content for preview
+      const blob = await documentService.downloadDocument(doc.document_id);
+      
+      // Handle different file types
+      const fileExtension = doc.filename.split('.').pop()?.toLowerCase();
+      
+      if (fileExtension === 'txt') {
+        const text = await blob.text();
+        setDocumentContent(text);
+      } else if (fileExtension === 'pdf') {
+        // For PDFs, create a blob URL for iframe
+        const url = URL.createObjectURL(blob);
+        setDocumentContent(url);
+      } else {
+        // For other file types, show download option
+        setDocumentContent('preview-not-available');
+      }
     } catch (err) {
       setError('Failed to load document details');
       console.error('Error loading document details:', err);
     } finally {
       setViewingDocumentId(null);
+      setContentLoading(false);
+    }
+  };
+
+  const handleCloseView = () => {
+    setViewingDocument(null);
+    setDocumentContent(null);
+    // Clean up blob URL if it exists
+    if (documentContent && documentContent.startsWith('blob:')) {
+      URL.revokeObjectURL(documentContent);
+    }
+  };
+
+  const handleCopyLink = async (doc: ProjectDocument) => {
+    try {
+      setCopyingLink(doc.document_id);
+      setError(null);
+      
+      // Use the serve endpoint with filepath for secure access
+      const documentUrl = `${window.location.origin}/api/project/document/serve?filepath=${encodeURIComponent(doc.filepath)}`;
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(documentUrl);
+      
+      // Show success toast with file type info
+      const fileExt = doc.filename.split('.').pop()?.toUpperCase() || 'FILE';
+      toast({
+        title: "Link copied!",
+        description: `Direct ${fileExt} file path (${doc.filepath}) has been copied to your clipboard.`,
+      });
+    } catch (err) {
+      setError('Failed to copy link');
+      console.error('Error copying link:', err);
+      
+      // Show error toast
+      toast({
+        title: "Failed to copy link",
+        description: "Please try again or copy the link manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setCopyingLink(null);
     }
   };
 
@@ -274,6 +339,12 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
                         {doc.metadata?.size && (
                           <span>{formatFileSize(doc.metadata.size as number)}</span>
                         )}
+                        {doc.dify_document_id && (
+                          <span className="flex items-center gap-1">
+                            <Link className="w-3 h-3" />
+                            Dify ID: {doc.dify_document_id.substring(0, 8)}...
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -320,6 +391,19 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyLink(doc)}
+                      title="Copy Link"
+                      disabled={copyingLink === doc.document_id}
+                    >
+                      {copyingLink === doc.document_id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                      ) : (
+                        <Link className="w-4 h-4" />
+                      )}
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -330,11 +414,64 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
 
       {/* Document Viewer Modal */}
       {viewingDocument && (
-        <DocumentViewer
-          document={viewingDocument}
-          isOpen={!!viewingDocument}
-          onClose={() => setViewingDocument(null)}
-        />
+        <Card className="mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{getFileIcon(viewingDocument.filename)}</span>
+                <div>
+                  <CardTitle className="text-lg">{viewingDocument.filename}</CardTitle>
+                  <p className="text-sm text-gray-500">
+                    Uploaded {new Date(viewingDocument.uploaded_at).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleDownload(viewingDocument)}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCloseView}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {contentLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2">Loading document...</span>
+              </div>
+            ) : documentContent === 'preview-not-available' ? (
+              <div className="text-center py-12">
+                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Preview Not Available</h3>
+                <p className="text-gray-500 mb-6">
+                  This file type cannot be previewed. Please download the file to view its contents.
+                </p>
+                <Button onClick={() => handleDownload(viewingDocument)}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download File
+                </Button>
+              </div>
+            ) : documentContent && documentContent.startsWith('blob:') ? (
+              <div className="w-full h-96">
+                <iframe
+                  src={documentContent}
+                  className="w-full h-full border rounded"
+                  title={viewingDocument.filename}
+                />
+              </div>
+            ) : (
+              <div className="bg-gray-50 p-4 rounded border">
+                <pre className="whitespace-pre-wrap text-sm font-mono overflow-auto max-h-96">
+                  {documentContent}
+                </pre>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

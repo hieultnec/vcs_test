@@ -4,6 +4,7 @@ from datetime import datetime
 from utils import database
 from utils.logger import logger
 from services import document
+from services.workflow import save_workflow_config
 
 def create(data, files=None):
     """Create a new project with filesystem directory.
@@ -39,6 +40,34 @@ def create(data, files=None):
     logger.info("Saving project to database: %s", project_data)
     database.create_project(project_data)
     logger.info("Project created successfully with ID: %s", project_id)
+    
+    # Create default workflow config with Dify URL
+    default_variables = [
+        {
+            "id": str(uuid.uuid4()),
+            "variable_name": "dify_api_url",
+            "key": "dify_api_url",
+            "value": "http://localhost/v1",  # Default local Dify URL
+            "type": "url",
+            "description": "Dify API base URL for document processing"
+        }
+    ]
+    try:
+        save_workflow_config(project_id, default_variables)
+        logger.info("Created default workflow config for project: %s", project_id)
+        
+        # Verify the config was saved by retrieving it
+        from services.workflow import get_workflow_config
+        verification_config = get_workflow_config(project_id)
+        if not verification_config or not verification_config.get('variables'):
+            logger.error("Workflow config verification failed for project %s", project_id)
+            raise Exception("Failed to verify workflow config creation")
+        logger.info("Workflow config verified for project: %s", project_id)
+        
+    except Exception as e:
+        logger.error("Failed to create workflow config for project %s: %s", project_id, str(e))
+        raise e
+    
     # Handle document upload if files are present
     uploaded_docs = []
     if files:

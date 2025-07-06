@@ -111,6 +111,14 @@ class TestCaseService:
             test_case_doc['version'] = test_case_data.get('version', '1.0')
             test_case_doc['status'] = test_case_data.get('status', 'untested')
             
+            # Handle script fields
+            test_case_doc['script_file_name'] = test_case_data.get('scriptFileName', '')
+            test_case_doc['script_content'] = test_case_data.get('scriptContent', '')
+            
+            # Ensure steps is always a list
+            if 'steps' not in test_case_doc or not test_case_doc['steps']:
+                test_case_doc['steps'] = []
+            
             result = db.test_cases.insert_one(test_case_doc)
             test_case_doc['_id'] = str(result.inserted_id)
             return test_case_doc

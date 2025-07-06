@@ -6,6 +6,7 @@ export interface ProjectDocument {
   project_id: string;
   filename: string;
   filepath: string;
+  dify_document_id?: string;
   is_current: boolean;
   uploaded_at: string;
   metadata?: Record<string, unknown>;
@@ -29,7 +30,7 @@ export interface CreateProjectData {
   description?: string;
   owner?: string;
   is_current?: boolean;
-  file: File[];
+  file?: File[];
 }
 
 export interface ApiResponse<T> {
@@ -91,9 +92,11 @@ export const projectService = {
       if (data.owner) formData.append('owner', data.owner);
       if (data.is_current !== undefined) formData.append('is_current', data.is_current.toString());
       
-      data.file.forEach((file) => {
-        formData.append('file', file);
-      });
+      if (data.file && data.file.length > 0) {
+        data.file.forEach((file) => {
+          formData.append('file', file);
+        });
+      }
 
       const response = await apiClient.post('/api/project/create', formData, {
         headers: {

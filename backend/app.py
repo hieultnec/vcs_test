@@ -2,8 +2,14 @@ from connexion import FlaskApp
 from connexion.middleware import MiddlewarePosition
 from starlette.middleware.cors import CORSMiddleware
 import os
+
 SWAGGER_PATH=os.environ["SWAGGER_PATH"]
 app = FlaskApp(__name__, specification_dir='.')
+
+# Add static file serving for projects directory
+app.app.static_folder = 'projects'
+app.app.static_url_path = '/projects'
+
 app.add_api(SWAGGER_PATH)
 
 app.add_middleware(

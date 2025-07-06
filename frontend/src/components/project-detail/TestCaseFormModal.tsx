@@ -1,13 +1,14 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { Scenario } from '@/services/scenarioService';
 
 interface TestCaseFormData {
   title: string;
@@ -15,6 +16,8 @@ interface TestCaseFormData {
   scenarioId: string;
   expectedResult: string;
   steps: string[];
+  scriptFileName: string;
+  scriptContent: string;
   status: 'untested' | 'passed' | 'failed';
 }
 
@@ -24,6 +27,9 @@ interface TestCaseFormModalProps {
   testCase?: TestCaseFormData & { id: string; version: string };
   mode: 'create' | 'edit';
   prefilledScenarioId?: string;
+  projectId: string;
+  scenarios: Scenario[];
+  onSubmit: (data: TestCaseFormData) => Promise<void>;
 }
 
 const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({ 
@@ -31,22 +37,58 @@ const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
   onClose, 
   testCase, 
   mode,
-  prefilledScenarioId 
+  prefilledScenarioId,
+  projectId,
+  scenarios,
+  onSubmit
 }) => {
   const [steps, setSteps] = useState<string[]>(testCase?.steps || ['']);
-  const [selectedScenario, setSelectedScenario] = useState(prefilledScenarioId || testCase?.scenarioId || '');
+  const [selectedScenario, setSelectedScenario] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<'untested' | 'passed' | 'failed'>(testCase?.status || 'untested');
+  const [scriptFileName, setScriptFileName] = useState(testCase?.scriptFileName || '');
+  const [scriptContent, setScriptContent] = useState(testCase?.scriptContent || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('steps');
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<TestCaseFormData>({
-    defaultValues: testCase || { title: '', description: '', scenarioId: prefilledScenarioId || '', expectedResult: '', steps: [''], status: 'untested' }
+    defaultValues: testCase || { 
+      title: '', 
+      description: '', 
+      scenarioId: '', 
+      expectedResult: '', 
+      steps: [''], 
+      scriptFileName: '',
+      scriptContent: '',
+      status: 'untested' 
+    }
   });
 
-  React.useEffect(() => {
-    if (prefilledScenarioId) {
-      setSelectedScenario(prefilledScenarioId);
-      setValue('scenarioId', prefilledScenarioId);
+  // Set default scenario when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      if (prefilledScenarioId) {
+        setSelectedScenario(prefilledScenarioId);
+        setValue('scenarioId', prefilledScenarioId);
+      } else {
+        // Default to "freestyle" if no scenario is pre-selected
+        setSelectedScenario('freestyle');
+        setValue('scenarioId', 'freestyle');
+      }
     }
-  }, [prefilledScenarioId, setValue]);
+  }, [isOpen, prefilledScenarioId, setValue]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      reset();
+      setSteps(['']);
+      setSelectedScenario('');
+      setSelectedStatus('untested');
+      setScriptFileName('');
+      setScriptContent('');
+      setActiveTab('steps');
+    }
+  }, [isOpen, reset]);
 
   const addStep = () => {
     setSteps([...steps, '']);
@@ -62,48 +104,46 @@ const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
     setSteps(steps.filter((_, i) => i !== index));
   };
 
-  const onSubmit = (data: TestCaseFormData) => {
-    const formData = {
-      ...data,
-      scenarioId: selectedScenario,
-      status: selectedStatus,
-      steps: steps.filter(step => step.trim() !== ''),
-      project_id: 'current-project-id', // This should come from context/props
-      version: mode === 'edit' ? testCase?.version : 'v1.0'
-    };
-    console.log(`${mode} test case:`, formData);
-    // Here you would call the API: POST /api/test_case/create or PUT /api/test_case/update
-    reset();
-    setSteps(['']);
-    setSelectedScenario('');
-    setSelectedStatus('untested');
-    onClose();
+  const handleFormSubmit = async (data: TestCaseFormData) => {
+    try {
+      setIsSubmitting(true);
+      const formData = {
+        ...data,
+        scenarioId: selectedScenario,
+        status: selectedStatus,
+        steps: steps.filter(step => step.trim() !== ''),
+        scriptFileName,
+        scriptContent,
+      };
+      await onSubmit(formData);
+      onClose();
+    } catch (error) {
+      console.error('Failed to submit test case:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
-    reset();
-    setSteps(['']);
-    setSelectedScenario('');
-    setSelectedStatus('untested');
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-2">
           <DialogTitle className="text-lg">
             {mode === 'create' ? 'Create New Test Case' : 'Edit Test Case'}
           </DialogTitle>
           <DialogDescription className="text-sm">
             {mode === 'create' 
-              ? 'Define a new test case with steps, expected results, and status.'
+              ? 'Define a new test case with steps or script, expected results, and status.'
               : 'Update the test case details.'
             }
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm">Test Case Title</Label>
             <Input
@@ -133,45 +173,92 @@ const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="scenarioId" className="text-sm">Test Scenario</Label>
-            <Select value={selectedScenario} onValueChange={setSelectedScenario}>
+            <Select value={selectedScenario} onValueChange={(value) => {
+              setSelectedScenario(value);
+              setValue('scenarioId', value);
+            }}>
               <SelectTrigger className="text-sm">
                 <SelectValue placeholder="Select a scenario" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">User Registration Flow</SelectItem>
-                <SelectItem value="2">Payment Processing</SelectItem>
-                <SelectItem value="3">Product Search</SelectItem>
+                <SelectItem value="freestyle">Freestyle</SelectItem>
+                {scenarios.map((scenario) => (
+                  <SelectItem key={scenario.id} value={scenario.id}>
+                    {scenario.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm">Test Steps</Label>
-            {steps.map((step, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  placeholder={`Step ${index + 1}`}
-                  value={step}
-                  className="text-sm"
-                  onChange={(e) => updateStep(index, e.target.value)}
-                />
-                {steps.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="px-2 py-1"
-                    onClick={() => removeStep(index)}
-                  >
-                    <X className="w-4 h-4" />
+            <Label className="text-sm">Test Implementation</Label>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="steps">Test Steps</TabsTrigger>
+                <TabsTrigger value="script">Test Script</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="steps" className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-600">Define test steps manually</Label>
+                  {steps.map((step, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        placeholder={`Step ${index + 1}`}
+                        value={step}
+                        className="text-sm"
+                        onChange={(e) => updateStep(index, e.target.value)}
+                      />
+                      {steps.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="px-2 py-1"
+                          onClick={() => removeStep(index)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" onClick={addStep} className="px-3 py-1">
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Step
                   </Button>
-                )}
-              </div>
-            ))}
-            <Button type="button" variant="outline" onClick={addStep} className="px-3 py-1">
-              <Plus className="w-4 h-4 mr-1" />
-              Add Step
-            </Button>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="script" className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-600">Define test using script</Label>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="scriptFileName" className="text-sm">Script File Name</Label>
+                    <Input
+                      id="scriptFileName"
+                      placeholder="e.g., test_login.py, test_registration.js"
+                      value={scriptFileName}
+                      onChange={(e) => setScriptFileName(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="scriptContent" className="text-sm">Script Content</Label>
+                    <Textarea
+                      id="scriptContent"
+                      placeholder="Enter your test script here..."
+                      value={scriptContent}
+                      onChange={(e) => setScriptContent(e.target.value)}
+                      rows={8}
+                      className="text-sm font-mono resize-none"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <div className="space-y-2">
@@ -203,11 +290,11 @@ const TestCaseFormModal: React.FC<TestCaseFormModalProps> = ({
           </div>
 
           <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={handleClose} className="px-4 py-2">
+            <Button type="button" variant="outline" onClick={handleClose} className="px-4 py-2" disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" className="px-4 py-2">
-              {mode === 'create' ? 'Create Test Case' : 'Update Test Case'}
+            <Button type="submit" className="px-4 py-2" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : (mode === 'create' ? 'Create Test Case' : 'Update Test Case')}
             </Button>
           </DialogFooter>
         </form>

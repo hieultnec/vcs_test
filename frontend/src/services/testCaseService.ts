@@ -7,6 +7,8 @@ export interface CreateTestCaseData {
   description: string;
   steps: string[];
   expected_result: string;
+  scriptFileName?: string;
+  scriptContent?: string;
   status: 'untested' | 'passed' | 'failed';
   version?: string;
 }

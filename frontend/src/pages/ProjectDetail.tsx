@@ -13,7 +13,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import TestScenariosTab from "@/components/project-detail/TestScenariosTab";
 import DocumentUploadModal from "@/components/project-detail/DocumentUploadModal";
-import ScenarioFormModal from "@/components/project-detail/ScenarioFormModal";
+
 import DocumentManager from "@/components/DocumentManager";
 import WorkflowTab from "@/components/project-detail/WorkflowTab";
 import { useAppDispatch } from "@/hooks/useAppDispatch";
@@ -35,7 +35,6 @@ const ProjectDetail = () => {
   );
 
   const [isDocumentUploadOpen, setIsDocumentUploadOpen] = useState(false);
-  const [isScenarioFormOpen, setIsScenarioFormOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -216,7 +215,7 @@ const ProjectDetail = () => {
           </TabsContent>
 
           <TabsContent value="scenarios">
-            <TestScenariosTab />
+            {id && <TestScenariosTab projectId={id} />}
           </TabsContent>
 
           <TabsContent value="workflow">
@@ -229,11 +228,7 @@ const ProjectDetail = () => {
           onClose={() => setIsDocumentUploadOpen(false)}
         />
 
-        <ScenarioFormModal
-          isOpen={isScenarioFormOpen}
-          onClose={() => setIsScenarioFormOpen(false)}
-          mode="create"
-        />
+
       </div>
     </div>
   );

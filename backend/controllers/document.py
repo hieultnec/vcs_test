@@ -96,4 +96,32 @@ def download_document():
         )
     except Exception as e:
         logger.error(f"Failed to download document: {str(e)}")
+        return return_status(500, str(e))
+
+def serve_document():
+    """Serve a document file directly by filepath."""
+    try:
+        filepath = request.args.get('filepath')
+        if not filepath:
+            return return_status(400, "filepath is required")
+        
+        # Security check: ensure the filepath is within the projects directory
+        if not filepath.startswith('projects/') or '..' in filepath:
+            return return_status(403, "Access denied")
+        
+        if not os.path.exists(filepath):
+            return return_status(404, "File not found")
+        
+        # Get the filename from the path
+        filename = os.path.basename(filepath)
+        
+        # Send the file for viewing (not as attachment)
+        return send_file(
+            filepath,
+            as_attachment=False,
+            download_name=filename,
+            mimetype='application/octet-stream'
+        )
+    except Exception as e:
+        logger.error(f"Failed to serve document: {str(e)}")
         return return_status(500, str(e)) 

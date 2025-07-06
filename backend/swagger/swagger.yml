@@ -2,6 +2,7 @@ swagger: '2.0'
 info:
   title: Auto Test Case API
   version: '1.0'
+  description: API for managing test projects, scenarios, test cases, and test runs
 tags:
   - name: Project
     description: Project management endpoints
@@ -15,22 +16,55 @@ tags:
     description: Test case management endpoints
   - name: TestRun
     description: Test run history management endpoints
+  - name: Workflow
+    description: Workflow management endpoints
+
 paths:
   /api/ping:
     get:
-      summary: ping function in ping controller
+      summary: Health check endpoint
       tags: [Project]
       operationId: controllers.ping.ping
       responses:
         '200':
           description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+
+  /api/projects:
+    get:
+      summary: Get all projects
+      tags: [Project]
+      produces:
+        - application/json
+      operationId: controllers.project.list
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: '#/definitions/Project'
+
   /api/project/create:
     post:
-      summary: create project
+      summary: Create a new project with document upload
       tags: [Project]
       consumes:
-        - application/json
         - multipart/form-data
+        - application/json
       parameters:
         - name: name
           in: formData
@@ -62,9 +96,23 @@ paths:
       responses:
         '200':
           description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/Project'
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
+
   /api/project/get:
     get:
-      summary: get project by id (includes tasks and test scenarios)
+      summary: Get project by ID (includes test scenarios and tasks)
       tags: [Project]
       produces:
         - application/json
@@ -81,42 +129,68 @@ paths:
           schema:
             type: object
             properties:
-              project_id:
+              status:
+                type: integer
+              message:
                 type: string
+              result:
+                $ref: '#/definitions/ProjectDetail'
+        '400':
+          description: Bad request - missing project ID
+        '404':
+          description: Project not found
+        '500':
+          description: Internal server error
+
+  /api/project/update:
+    put:
+      summary: Update project information by ID
+      tags: [Project]
+      consumes:
+        - application/json
+      parameters:
+        - name: id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project to update
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
               name:
                 type: string
-              tasks:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    task_id:
-                      type: string
-                    test_scenarios:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          scenario:
-                            type: string
-                          test_cases:
-                            type: array
-                            items:
-                              type: object
-                              properties:
-                                test_case:
-                                  type: string
-                                requirement:
-                                  type: string
-                                test_objective:
-                                  type: string
-                                scenario:
-                                  type: string
-                                expected_result:
-                                  type: string
+              description:
+                type: string
+              owner:
+                type: string
+              status:
+                type: string
+      operationId: controllers.project.update
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/Project'
+        '400':
+          description: Bad request - missing project ID or request body
+        '404':
+          description: Project not found
+        '500':
+          description: Internal server error
+
   /api/project/delete:
     delete:
-      summary: delete project by id
+      summary: Delete project by ID
       tags: [Project]
       produces:
         - application/json
@@ -130,53 +204,126 @@ paths:
       responses:
         '200':
           description: Successful operation
-
-  /api/projects:
-    get:
-      summary: get all project
-      tags: [Project]
-      produces:
-        - application/json
-      operationId: controllers.project.list
-      responses:
-        '200':
-          description: Successful operation
-
-  /api/project/update:
-    put:
-      summary: update project information by id
-      tags: [Project]
-      operationId: controllers.project.update
-      responses:
-        '200':
-          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Bad request - missing project ID
+        '404':
+          description: Project not found
+        '500':
+          description: Internal server error
 
   /api/project/document/upload:
     post:
-      summary: upload document for project
+      summary: Upload document for a project
       tags: [Document]
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: project_id
+          in: formData
+          required: true
+          type: string
+          description: Project ID
+        - name: file
+          in: formData
+          required: true
+          type: file
+          description: Document file to upload
+        - name: is_current
+          in: formData
+          required: false
+          type: boolean
+          description: Mark document as current
       operationId: controllers.document.upload_document
       responses:
         '200':
           description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/Document'
+        '400':
+          description: Bad request - missing file or project_id
+        '500':
+          description: Internal server error
 
   /api/project/document/list:
     get:
-      summary: list documents for a project
+      summary: List documents for a project
       tags: [Document]
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: Project ID
       operationId: controllers.document.get_documents
       responses:
         '200':
           description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: '#/definitions/Document'
+        '400':
+          description: Bad request - missing project_id
+        '500':
+          description: Internal server error
 
   /api/project/document/delete:
     delete:
-      summary: delete document by id
+      summary: Delete document by ID
       tags: [Document]
+      produces:
+        - application/json
+      parameters:
+        - name: document_id
+          in: query
+          required: true
+          type: string
+          description: Document ID to delete
       operationId: controllers.document.delete_document
       responses:
         '200':
           description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+        '400':
+          description: Bad request - missing document_id
+        '404':
+          description: Document not found
+        '500':
+          description: Internal server error
 
   /api/project/document/list_by_project:
     get:
@@ -189,14 +336,30 @@ paths:
           in: query
           required: true
           type: string
-          description: The ID of the project to list documents for
+          description: Project ID
       operationId: controllers.document.get_documents_by_project
       responses:
         '200':
           description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: '#/definitions/Document'
+        '400':
+          description: Bad request - missing project_id
+        '500':
+          description: Internal server error
+
   /api/project/document/detail:
     get:
-      summary: Get detail for a document
+      summary: Get document details by ID
       tags: [Document]
       produces:
         - application/json
@@ -205,17 +368,57 @@ paths:
           in: query
           required: true
           type: string
-          description: The ID of the document to retrieve
+          description: Document ID
       operationId: controllers.document.get_document_detail
       responses:
         '200':
           description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/Document'
+        '400':
+          description: Bad request - missing document_id
+        '404':
+          description: Document not found
+        '500':
+          description: Internal server error
+
+  /api/project/document/download:
+    get:
+      summary: Download a document by ID
+      tags: [Document]
+      produces:
+        - application/octet-stream
+      parameters:
+        - name: document_id
+          in: query
+          required: true
+          type: string
+          description: Document ID to download
+      operationId: controllers.document.download_document
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: file
+        '400':
+          description: Bad request - missing document_id
+        '404':
+          description: Document not found
+        '500':
+          description: Internal server error
 
   /api/task/create:
     post:
-      summary: create task
+      summary: Create a new task
       tags: [Task]
-      produces:
+      consumes:
         - application/json
       parameters:
         - name: body
@@ -223,68 +426,45 @@ paths:
           required: true
           schema:
             type: object
-            properties:
-              project_id:
-                type: string
-                format: uuid
-                example: "<project_id>"
-              task_name:
-                type: string
-                example: "Feature: Practice Test Automation Login"
-              url:
-                type: string
-                format: uri
-                example: "https://practicetestautomation.com/practice-test-login"
-              context:
-                type: array
-                items:
-                  type: string
-                example:
-                  - "Open page"
-                  - "Type username incorrectUser into Username field"
-                  - "Type password Password123 into Password field"
-                  - "Click on button by XPATH = \"//button[@id='submit']\""
-                  - "Verify error message is displayed"
-              output:
-                type: string
-                example: "Your username is invalid"
             required:
               - project_id
               - task_name
               - url
               - context
-              - output
+            properties:
+              project_id:
+                type: string
+                description: Project ID
+              task_name:
+                type: string
+                description: Task name
+              url:
+                type: string
+                description: Target URL for the task
+              context:
+                type: string
+                description: Task context/description
       operationId: controllers.task.create
       responses:
         '200':
           description: Successful operation
-  /api/task/execute:
-    post:
-      summary: execute task by project id and task id
-      tags: [Task]
-      parameters:
-        - name: body
-          in: body
-          required: true
           schema:
             type: object
             properties:
-              project_id:
+              status:
+                type: integer
+              message:
                 type: string
-                example: "<project_id>"
-              task_id:
-                type: string
-                example: "<task_id>"
-            required:
-              - task_id
-              - project_id
-      operationId: controllers.task.ex_task
-      responses:
-        '200':
-          description: Successful operation
+              result:
+                $ref: '#/definitions/Task'
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
+
   /api/task/get:
     get:
-      summary: get task by id (includes test scenarios)
+      summary: Get tasks for a project
       tags: [Task]
       produces:
         - application/json
@@ -293,12 +473,7 @@ paths:
           in: query
           required: true
           type: string
-          description: The ID of the project to retrieve
-        - name: task_id
-          in: query
-          required: true
-          type: string
-          description: The ID of the task to retrieve
+          description: Project ID
       operationId: controllers.task.get
       responses:
         '200':
@@ -306,34 +481,148 @@ paths:
           schema:
             type: object
             properties:
-              task_id:
+              status:
+                type: integer
+              message:
                 type: string
-              test_scenarios:
+              result:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    scenario:
-                      type: string
-                    test_cases:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          test_case:
-                            type: string
-                          requirement:
-                            type: string
-                          test_objective:
-                            type: string
-                          scenario:
-                            type: string
-                          expected_result:
-                            type: string
+                  $ref: '#/definitions/Task'
+        '400':
+          description: Bad request - missing project_id
+        '500':
+          description: Internal server error
 
-  /api/tasks:
+  /api/task/update:
+    put:
+      summary: Update a task
+      tags: [Task]
+      consumes:
+        - application/json
+      parameters:
+        - name: id
+          in: query
+          required: true
+          type: string
+          description: Task ID
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              task_name:
+                type: string
+              url:
+                type: string
+              context:
+                type: string
+              status:
+                type: string
+      operationId: controllers.task.update
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/Task'
+        '400':
+          description: Bad request - missing task ID or request body
+        '404':
+          description: Task not found
+        '500':
+          description: Internal server error
+
+  /api/task/delete:
+    delete:
+      summary: Delete a task
+      tags: [Task]
+      produces:
+        - application/json
+      parameters:
+        - name: task_id
+          in: query
+          required: true
+          type: string
+          description: Task ID
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: Project ID
+      operationId: controllers.task.delete
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Bad request - missing task_id or project_id
+        '404':
+          description: Task not found
+        '500':
+          description: Internal server error
+
+  /api/task/execute:
+    post:
+      summary: Execute a task
+      tags: [Task]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - project_id
+              - task_id
+            properties:
+              project_id:
+                type: string
+                description: Project ID
+              task_id:
+                type: string
+                description: Task ID to execute
+      operationId: controllers.task.ex_task
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
+
+  /api/task/screenshots:
     get:
-      summary: get tasks by project id
+      summary: Get list of screenshots for a task
       tags: [Task]
       produces:
         - application/json
@@ -342,83 +631,60 @@ paths:
           in: query
           required: true
           type: string
-          description: The ID of the project to retrieve
-      operationId: controllers.task.get_all
-      responses:
-        '200':
-          description: Successful operation
-
-  /api/task/screenshots:
-    get:
-      summary: get screenshots by id
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: The ID of the project to retrieve
+          description: Project ID
         - name: task_id
           in: query
           required: true
           type: string
-          description: The ID of the task to retrieve
+          description: Task ID
       operationId: controllers.task.get_screenshots
       responses:
         '200':
           description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  type: string
+        '400':
+          description: Bad request - missing project_id or task_id
+        '500':
+          description: Internal server error
 
   /api/task/screenshot:
     get:
-      summary: get screenshots by image path
+      summary: Get a specific screenshot file
+      tags: [Task]
       produces:
-        - application/json
+        - image/png
       parameters:
         - name: path
           in: query
           required: true
           type: string
-          description: The path image to retrieve
+          description: Path to screenshot file
       operationId: controllers.task.get_screenshot
       responses:
         '200':
           description: Successful operation
-
-  /api/task/delete:
-    delete:
-      summary: delete task by id
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: The ID of the project to delete
-        - name: task_id
-          in: query
-          required: true
-          type: string
-          description: The ID of the task to delete
-      operationId: controllers.task.delete
-      responses:
-        '200':
-          description: Successful operation
-
-  /api/task/update:
-    put:
-      summary: update task information by id
-      produces:
-        - application/json
-      operationId: controllers.task.update
-      responses:
-        '200':
-          description: Successful operation
+          schema:
+            type: file
+        '400':
+          description: Bad request - missing path
+        '404':
+          description: Screenshot not found
+        '500':
+          description: Internal server error
 
   /api/scenario/save:
     post:
-      summary: Save all scenarios for a project
+      summary: Save test scenarios for a project
       tags: [Scenario]
       consumes:
         - application/json
@@ -428,169 +694,68 @@ paths:
           required: true
           schema:
             type: object
+            required:
+              - project_id
+              - scenarios
             properties:
               project_id:
                 type: string
+                description: Project ID
               scenarios:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    name:
-                      type: string
-                    description:
-                      type: string
-                    lastUpdated:
-                      type: string
-                    version:
-                      type: string
-                    priority:
-                      type: string
-                      enum: [High, Medium, Low]
-                    testCases:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          id:
-                            type: string
-                          name:
-                            type: string
-                          expectedResult:
-                            type: string
-                          steps:
-                            type: array
-                            items:
-                              type: string
-                          tags:
-                            type: array
-                            items:
-                              type: string
-                          version:
-                            type: string
-                          lastUpdated:
-                            type: string
-                          testDataSets:
-                            type: array
-                            items:
-                              type: object
-                              properties:
-                                id:
-                                  type: string
-                                name:
-                                  type: string
-                                inputData:
-                                  type: object
-                                expectedOutput:
-                                  type: object
-                                version:
-                                  type: string
-                                lastUpdated:
-                                  type: string
-            example:
-              project_id: "your-project-id"
-              scenarios:
-                - id: "scenario-uuid"
-                  name: "Login Performance"
-                  description: "Simulate 20 concurrent users logging in."
-                  lastUpdated: "2024-07-01T12:00:00Z"
-                  version: "1.0"
-                  priority: "High"
-                  testCases:
-                    - id: "case-uuid"
-                      name: "TC_001"
-                      expectedResult: "Average login response time should be less than 3 seconds."
-                      steps: ["Step 1", "Step 2"]
-                      tags: ["performance", "login"]
-                      version: "1.0"
-                      lastUpdated: "2024-07-01T12:00:00Z"
-                      testDataSets:
-                        - id: "dataset-uuid"
-                          name: "Valid User"
-                          inputData: { "username": "user1", "password": "pass" }
-                          expectedOutput: { "status": "success" }
-                          version: "1.0"
-                          lastUpdated: "2024-07-01T12:00:00Z"
+                  $ref: '#/definitions/Scenario'
       operationId: controllers.scenario.save_scenarios
       responses:
         '200':
-          description: Scenarios saved
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
+
   /api/scenario/list:
     get:
-      summary: List all scenarios for a project
+      summary: Get test scenarios for a project
       tags: [Scenario]
+      produces:
+        - application/json
       parameters:
         - name: project_id
           in: query
           required: true
           type: string
+          description: Project ID
       operationId: controllers.scenario.get_scenarios
       responses:
         '200':
-          description: List of scenarios
+          description: Successful operation
           schema:
-            type: array
-            items:
-              type: object
-              properties:
-                id:
-                  type: string
-                name:
-                  type: string
-                description:
-                  type: string
-                lastUpdated:
-                  type: string
-                version:
-                  type: string
-                priority:
-                  type: string
-                  enum: [High, Medium, Low]
-                testCases:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                      name:
-                        type: string
-                      expectedResult:
-                        type: string
-                      steps:
-                        type: array
-                        items:
-                          type: string
-                      tags:
-                        type: array
-                        items:
-                          type: string
-                      version:
-                        type: string
-                      lastUpdated:
-                        type: string
-                      testDataSets:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: string
-                            name:
-                              type: string
-                            inputData:
-                              type: object
-                            expectedOutput:
-                              type: object
-                            version:
-                              type: string
-                            lastUpdated:
-                              type: string
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: '#/definitions/Scenario'
+        '400':
+          description: Bad request - missing project_id
+        '500':
+          description: Internal server error
+
   /api/scenario/update:
     put:
-      summary: Update a scenario for a project
+      summary: Update a test scenario
       tags: [Scenario]
       consumes:
         - application/json
@@ -600,91 +765,108 @@ paths:
           required: true
           schema:
             type: object
+            required:
+              - project_id
+              - scenario_id
+              - scenario_data
             properties:
               project_id:
                 type: string
+                description: Project ID
               scenario_id:
                 type: string
+                description: Scenario ID
               scenario_data:
-                type: object
+                $ref: '#/definitions/Scenario'
       operationId: controllers.scenario.update_scenario
       responses:
         '200':
-          description: Scenario updated
-  /api/scenario/delete:
-    delete:
-      summary: Delete a scenario for a project
-      tags: [Scenario]
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-        - name: scenario_id
-          in: query
-          required: true
-          type: string
-      operationId: controllers.scenario.delete_scenario
-      responses:
-        '200':
-          description: Scenario deleted
-
-  /api/scenario/get:
-    get:
-      summary: Get a specific scenario by ID
-      tags: [Scenario]
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: The ID of the project
-        - name: scenario_id
-          in: query
-          required: true
-          type: string
-          description: The ID of the scenario
-      operationId: controllers.scenario.get_scenario
-      responses:
-        '200':
-          description: Scenario details with test cases
+          description: Successful operation
           schema:
             type: object
             properties:
-              id:
+              status:
+                type: integer
+              message:
                 type: string
-              name:
+        '400':
+          description: Bad request - missing required fields
+        '404':
+          description: Scenario not found
+        '500':
+          description: Internal server error
+
+  /api/scenario/delete:
+    delete:
+      summary: Delete a test scenario
+      tags: [Scenario]
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: Project ID
+        - name: scenario_id
+          in: query
+          required: true
+          type: string
+          description: Scenario ID
+      operationId: controllers.scenario.delete_scenario
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
                 type: string
-              description:
+        '400':
+          description: Bad request - missing required fields
+        '404':
+          description: Scenario not found
+        '500':
+          description: Internal server error
+
+  /api/scenario/get:
+    get:
+      summary: Get a specific test scenario
+      tags: [Scenario]
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: Project ID
+        - name: scenario_id
+          in: query
+          required: true
+          type: string
+          description: Scenario ID
+      operationId: controllers.scenario.get_scenario
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
                 type: string
-              test_cases:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    title:
-                      type: string
-                    description:
-                      type: string
-                    steps:
-                      type: array
-                      items:
-                        type: string
-                    expected_result:
-                      type: string
-                    status:
-                      type: string
-                      enum: [untested, passed, failed]
-                    version:
-                      type: string
-                    created_at:
-                      type: string
-                      format: date-time
-                    updated_at:
-                      type: string
-                      format: date-time
+              result:
+                $ref: '#/definitions/Scenario'
+        '400':
+          description: Bad request - missing required fields
+        '404':
+          description: Scenario not found
+        '500':
+          description: Internal server error
 
   /api/test_case/save:
     post:
@@ -698,116 +880,73 @@ paths:
           required: true
           schema:
             type: object
-            properties:
-              project_id:
-                type: string
-                description: The ID of the project
-              scenario_id:
-                type: string
-                description: The ID of the scenario
-              test_cases:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      description: Test case ID (optional, will be generated if not provided)
-                    title:
-                      type: string
-                      description: Test case title
-                    description:
-                      type: string
-                      description: Test case description
-                    steps:
-                      type: array
-                      items:
-                        type: string
-                      description: Test steps
-                    expected_result:
-                      type: string
-                      description: Expected result
-                    status:
-                      type: string
-                      enum: [untested, passed, failed]
-                      description: Test case status
-                    version:
-                      type: string
-                      description: Version number
             required:
               - project_id
               - scenario_id
               - test_cases
-            example:
-              project_id: "project-123"
-              scenario_id: "scenario-456"
+            properties:
+              project_id:
+                type: string
+                description: Project ID
+              scenario_id:
+                type: string
+                description: Scenario ID
               test_cases:
-                - title: "Login with valid credentials"
-                  description: "Test user login with correct username and password"
-                  steps:
-                    - "Navigate to login page"
-                    - "Enter valid username"
-                    - "Enter valid password"
-                    - "Click login button"
-                  expected_result: "User should be logged in successfully"
-                  status: "untested"
-                  version: "1.0"
+                type: array
+                items:
+                  $ref: '#/definitions/TestCase'
       operationId: controllers.test_case.save_test_cases
       responses:
         '200':
-          description: Test cases saved successfully
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
         '400':
-          description: Bad request - missing required parameters
+          description: Bad request - missing required fields
         '500':
           description: Internal server error
 
   /api/test_case/list:
     get:
-      summary: Get all test cases for a scenario
+      summary: Get test cases for a scenario
       tags: [TestCase]
+      produces:
+        - application/json
       parameters:
         - name: project_id
           in: query
           required: true
           type: string
-          description: The ID of the project
+          description: Project ID
         - name: scenario_id
           in: query
           required: true
           type: string
-          description: The ID of the scenario
+          description: Scenario ID
       operationId: controllers.test_case.get_test_cases
       responses:
         '200':
-          description: List of test cases
+          description: Successful operation
           schema:
-            type: array
-            items:
-              type: object
-              properties:
-                id:
-                  type: string
-                title:
-                  type: string
-                description:
-                  type: string
-                steps:
-                  type: array
-                  items:
-                    type: string
-                expected_result:
-                  type: string
-                status:
-                  type: string
-                  enum: [untested, passed, failed]
-                version:
-                  type: string
-                created_at:
-                  type: string
-                  format: date-time
-                updated_at:
-                  type: string
-                  format: date-time
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: '#/definitions/TestCase'
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
 
   /api/test_case/create:
     post:
@@ -821,53 +960,40 @@ paths:
           required: true
           schema:
             type: object
-            properties:
-              project_id:
-                type: string
-                description: The ID of the project
-              scenario_id:
-                type: string
-                description: The ID of the scenario
-              test_case_data:
-                type: object
-                properties:
-                  title:
-                    type: string
-                    description: Test case title
-                  description:
-                    type: string
-                    description: Test case description
-                  steps:
-                    type: array
-                    items:
-                      type: string
-                    description: Test steps
-                  expected_result:
-                    type: string
-                    description: Expected result
-                  status:
-                    type: string
-                    enum: [untested, passed, failed]
-                    description: Test case status
-                  version:
-                    type: string
-                    description: Version number
             required:
               - project_id
               - scenario_id
               - test_case_data
+            properties:
+              project_id:
+                type: string
+                description: Project ID
+              scenario_id:
+                type: string
+                description: Scenario ID
+              test_case_data:
+                $ref: '#/definitions/TestCase'
       operationId: controllers.test_case.create_test_case
       responses:
         '200':
-          description: Test case created successfully
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/TestCase'
         '400':
-          description: Bad request - missing required parameters
+          description: Bad request - missing required fields
         '500':
           description: Internal server error
 
   /api/test_case/update:
     put:
-      summary: Update a specific test case
+      summary: Update a test case
       tags: [TestCase]
       consumes:
         - application/json
@@ -877,46 +1003,36 @@ paths:
           required: true
           schema:
             type: object
-            properties:
-              project_id:
-                type: string
-                description: The ID of the project
-              scenario_id:
-                type: string
-                description: The ID of the scenario
-              test_case_id:
-                type: string
-                description: The ID of the test case
-              update_data:
-                type: object
-                description: Data to update
-                properties:
-                  title:
-                    type: string
-                  description:
-                    type: string
-                  steps:
-                    type: array
-                    items:
-                      type: string
-                  expected_result:
-                    type: string
-                  status:
-                    type: string
-                    enum: [untested, passed, failed]
-                  version:
-                    type: string
             required:
               - project_id
               - scenario_id
               - test_case_id
               - update_data
+            properties:
+              project_id:
+                type: string
+                description: Project ID
+              scenario_id:
+                type: string
+                description: Scenario ID
+              test_case_id:
+                type: string
+                description: Test case ID
+              update_data:
+                $ref: '#/definitions/TestCase'
       operationId: controllers.test_case.update_test_case
       responses:
         '200':
-          description: Test case updated successfully
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
         '400':
-          description: Bad request - missing required parameters
+          description: Bad request - missing required fields
         '404':
           description: Test case not found
         '500':
@@ -924,30 +1040,39 @@ paths:
 
   /api/test_case/delete:
     delete:
-      summary: Delete a specific test case
+      summary: Delete a test case
       tags: [TestCase]
+      produces:
+        - application/json
       parameters:
         - name: project_id
           in: query
           required: true
           type: string
-          description: The ID of the project
+          description: Project ID
         - name: scenario_id
           in: query
           required: true
           type: string
-          description: The ID of the scenario
+          description: Scenario ID
         - name: test_case_id
           in: query
           required: true
           type: string
-          description: The ID of the test case
+          description: Test case ID
       operationId: controllers.test_case.delete_test_case
       responses:
         '200':
-          description: Test case deleted successfully
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
         '400':
-          description: Bad request - missing required parameters
+          description: Bad request - missing required fields
         '404':
           description: Test case not found
         '500':
@@ -955,56 +1080,41 @@ paths:
 
   /api/test_case/get:
     get:
-      summary: Get a specific test case by ID
+      summary: Get a specific test case
       tags: [TestCase]
+      produces:
+        - application/json
       parameters:
         - name: project_id
           in: query
           required: true
           type: string
-          description: The ID of the project
+          description: Project ID
         - name: scenario_id
           in: query
           required: true
           type: string
-          description: The ID of the scenario
+          description: Scenario ID
         - name: test_case_id
           in: query
           required: true
           type: string
-          description: The ID of the test case
+          description: Test case ID
       operationId: controllers.test_case.get_test_case
       responses:
         '200':
-          description: Test case details
+          description: Successful operation
           schema:
             type: object
             properties:
-              id:
-                type: string
-              title:
-                type: string
-              description:
-                type: string
-              steps:
-                type: array
-                items:
-                  type: string
-              expected_result:
-                type: string
               status:
+                type: integer
+              message:
                 type: string
-                enum: [untested, passed, failed]
-              version:
-                type: string
-              created_at:
-                type: string
-                format: date-time
-              updated_at:
-                type: string
-                format: date-time
+              result:
+                $ref: '#/definitions/TestCase'
         '400':
-          description: Bad request - missing required parameters
+          description: Bad request - missing required fields
         '404':
           description: Test case not found
         '500':
@@ -1021,54 +1131,22 @@ paths:
           in: body
           required: true
           schema:
-            type: object
-            properties:
-              project_id:
-                type: string
-                description: The ID of the project
-              scenario_id:
-                type: string
-                description: The ID of the scenario
-              test_case_id:
-                type: string
-                description: The ID of the test case
-              executed_by:
-                type: string
-                description: User who executed the test
-              status:
-                type: string
-                enum: [pass, fail, skipped]
-                description: Test execution status
-              logs:
-                type: string
-                description: Test execution logs
-              attachment_url:
-                type: string
-                description: URL to test attachments (screenshots, etc.)
-              version:
-                type: string
-                description: Version number
-            required:
-              - project_id
-              - scenario_id
-              - test_case_id
-              - executed_by
-              - status
-            example:
-              project_id: "project-123"
-              scenario_id: "scenario-456"
-              test_case_id: "test-case-789"
-              executed_by: "tester@example.com"
-              status: "pass"
-              logs: "Test executed successfully at 2024-01-15 10:30:00"
-              attachment_url: "https://example.com/screenshots/test-123.png"
-              version: "1.0"
+            $ref: '#/definitions/TestRun'
       operationId: controllers.test_run.record_test_run
       responses:
         '200':
-          description: Test run recorded successfully
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/TestRun'
         '400':
-          description: Bad request - missing required parameters
+          description: Bad request - missing request body
         '500':
           description: Internal server error
 
@@ -1076,59 +1154,46 @@ paths:
     get:
       summary: Get all test runs for a specific test case
       tags: [TestRun]
+      produces:
+        - application/json
       parameters:
         - name: project_id
           in: query
           required: true
           type: string
-          description: The ID of the project
+          description: Project ID
         - name: test_case_id
           in: query
           required: true
           type: string
-          description: The ID of the test case
+          description: Test case ID
       operationId: controllers.test_run.get_test_runs_by_case
       responses:
         '200':
-          description: List of test runs
+          description: Successful operation
           schema:
-            type: array
-            items:
-              type: object
-              properties:
-                run_id:
-                  type: string
-                project_id:
-                  type: string
-                scenario_id:
-                  type: string
-                test_case_id:
-                  type: string
-                executed_by:
-                  type: string
-                executed_at:
-                  type: string
-                  format: date-time
-                status:
-                  type: string
-                  enum: [pass, fail, skipped]
-                logs:
-                  type: string
-                attachment_url:
-                  type: string
-                version:
-                  type: string
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: '#/definitions/TestRun'
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
 
   /api/test_run/latest:
     get:
-      summary: Get the latest test run for a specific test case
+      summary: Get the latest test run for a test case
       tags: [TestRun]
+      produces:
+        - application/json
       parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: The ID of the project
         - name: test_case_id
           in: query
           required: true
@@ -1137,76 +1202,54 @@ paths:
       operationId: controllers.test_run.get_latest_test_run
       responses:
         '200':
-          description: Latest test run details
+          description: Successful operation
           schema:
             type: object
             properties:
-              run_id:
-                type: string
-              project_id:
-                type: string
-              scenario_id:
-                type: string
-              test_case_id:
-                type: string
-              executed_by:
-                type: string
-              executed_at:
-                type: string
-                format: date-time
               status:
+                type: integer
+              message:
                 type: string
-                enum: [pass, fail, skipped]
-              logs:
-                type: string
-              attachment_url:
-                type: string
-              version:
-                type: string
+              result:
+                $ref: '#/definitions/TestRun'
+        '400':
+          description: Bad request - missing test case ID
         '404':
-          description: No test runs found
+          description: Test run not found
+        '500':
+          description: Internal server error
 
   /api/test_run/get:
     get:
       summary: Get a specific test run by run_id
       tags: [TestRun]
+      produces:
+        - application/json
       parameters:
         - name: run_id
           in: query
           required: true
           type: string
-          description: The ID of the test run
+          description: Test run ID
       operationId: controllers.test_run.get_test_run
       responses:
         '200':
-          description: Test run details
+          description: Successful operation
           schema:
             type: object
             properties:
-              run_id:
-                type: string
-              project_id:
-                type: string
-              scenario_id:
-                type: string
-              test_case_id:
-                type: string
-              executed_by:
-                type: string
-              executed_at:
-                type: string
-                format: date-time
               status:
+                type: integer
+              message:
                 type: string
-                enum: [pass, fail, skipped]
-              logs:
-                type: string
-              attachment_url:
-                type: string
-              version:
-                type: string
+              result:
+                $ref: '#/definitions/TestRun'
+        '400':
+          description: Bad request - missing run_id
         '404':
           description: Test run not found
+        '500':
+          description: Internal server error
 
   /api/test_run/update:
     put:
@@ -1220,30 +1263,28 @@ paths:
           required: true
           schema:
             type: object
-            properties:
-              run_id:
-                type: string
-                description: The ID of the test run
-              update_data:
-                type: object
-                description: Data to update
-                properties:
-                  status:
-                    type: string
-                    enum: [pass, fail, skipped]
-                  logs:
-                    type: string
-                  attachment_url:
-                    type: string
             required:
               - run_id
               - update_data
+            properties:
+              run_id:
+                type: string
+                description: Test run ID
+              update_data:
+                $ref: '#/definitions/TestRun'
       operationId: controllers.test_run.update_test_run
       responses:
         '200':
-          description: Test run updated successfully
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
         '400':
-          description: Bad request - missing required parameters
+          description: Bad request - missing required fields
         '404':
           description: Test run not found
         '500':
@@ -1253,18 +1294,27 @@ paths:
     delete:
       summary: Delete a specific test run
       tags: [TestRun]
+      produces:
+        - application/json
       parameters:
         - name: run_id
           in: query
           required: true
           type: string
-          description: The ID of the test run
+          description: Test run ID
       operationId: controllers.test_run.delete_test_run
       responses:
         '200':
-          description: Test run deleted successfully
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
         '400':
-          description: Bad request - missing required parameters
+          description: Bad request - missing run_id
         '404':
           description: Test run not found
         '500':
@@ -1274,59 +1324,51 @@ paths:
     get:
       summary: Get all test runs for a specific scenario
       tags: [TestRun]
+      produces:
+        - application/json
       parameters:
         - name: project_id
           in: query
           required: true
           type: string
-          description: The ID of the project
+          description: Project ID
         - name: scenario_id
           in: query
           required: true
           type: string
-          description: The ID of the scenario
+          description: Scenario ID
       operationId: controllers.test_run.get_test_runs_by_scenario
       responses:
         '200':
-          description: List of test runs for the scenario
+          description: Successful operation
           schema:
-            type: array
-            items:
-              type: object
-              properties:
-                run_id:
-                  type: string
-                project_id:
-                  type: string
-                scenario_id:
-                  type: string
-                test_case_id:
-                  type: string
-                executed_by:
-                  type: string
-                executed_at:
-                  type: string
-                  format: date-time
-                status:
-                  type: string
-                  enum: [pass, fail, skipped]
-                logs:
-                  type: string
-                attachment_url:
-                  type: string
-                version:
-                  type: string
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: '#/definitions/TestRun'
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
 
   /api/test_run/list_by_project:
     get:
       summary: Get recent test runs for a project
       tags: [TestRun]
+      produces:
+        - application/json
       parameters:
         - name: project_id
           in: query
           required: true
           type: string
-          description: The ID of the project
+          description: Project ID
         - name: limit
           in: query
           required: false
@@ -1336,31 +1378,566 @@ paths:
       operationId: controllers.test_run.get_test_runs_by_project
       responses:
         '200':
-          description: List of recent test runs for the project
+          description: Successful operation
           schema:
-            type: array
-            items:
-              type: object
-              properties:
-                run_id:
-                  type: string
-                project_id:
-                  type: string
-                scenario_id:
-                  type: string
-                test_case_id:
-                  type: string
-                executed_by:
-                  type: string
-                executed_at:
-                  type: string
-                  format: date-time
-                status:
-                  type: string
-                  enum: [pass, fail, skipped]
-                logs:
-                  type: string
-                attachment_url:
-                  type: string
-                version:
-                  type: string
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: '#/definitions/TestRun'
+        '400':
+          description: Bad request - missing project_id
+        '500':
+          description: Internal server error
+
+  /api/workflow/config:
+    get:
+      summary: Get workflow configuration for a project
+      tags: [Workflow]
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project
+      operationId: controllers.workflow.get_workflow_config
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/WorkflowConfig'
+        '400':
+          description: Bad request - missing project ID
+        '500':
+          description: Internal server error
+    post:
+      summary: Save workflow configuration for a project
+      tags: [Workflow]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/WorkflowConfig'
+      operationId: controllers.workflow.save_workflow_config
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/WorkflowConfig'
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
+
+  /api/workflow/execute:
+    post:
+      summary: Execute a workflow with given variables
+      tags: [Workflow]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              project_id:
+                type: string
+                description: The ID of the project
+              variables:
+                type: array
+                items:
+                  $ref: '#/definitions/WorkflowVariable'
+      operationId: controllers.workflow.execute_workflow
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/WorkflowExecution'
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error
+
+  /api/workflow/execution:
+    get:
+      summary: Get workflow execution status
+      tags: [Workflow]
+      produces:
+        - application/json
+      parameters:
+        - name: execution_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the execution
+      operationId: controllers.workflow.get_execution_status
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: '#/definitions/WorkflowExecution'
+        '400':
+          description: Bad request - missing execution ID
+        '404':
+          description: Execution not found
+        '500':
+          description: Internal server error
+
+  /api/workflow/executions:
+    get:
+      summary: Get workflow execution history for a project
+      tags: [Workflow]
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the project
+      operationId: controllers.workflow.get_execution_history
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: '#/definitions/WorkflowExecution'
+        '400':
+          description: Bad request - missing project ID
+        '500':
+          description: Internal server error
+
+  /api/workflow/execution/cancel:
+    post:
+      summary: Cancel a workflow execution
+      tags: [Workflow]
+      produces:
+        - application/json
+      parameters:
+        - name: execution_id
+          in: query
+          required: true
+          type: string
+          description: The ID of the execution to cancel
+      operationId: controllers.workflow.cancel_execution
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+        '400':
+          description: Bad request - missing execution ID
+        '404':
+          description: Execution not found
+        '500':
+          description: Internal server error
+
+  /api/workflow/templates:
+    get:
+      summary: Get available workflow templates
+      tags: [Workflow]
+      produces:
+        - application/json
+      operationId: controllers.workflow.get_templates
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: '#/definitions/WorkflowTemplate'
+        '500':
+          description: Internal server error
+
+definitions:
+  Project:
+    type: object
+    properties:
+      project_id:
+        type: string
+        description: Unique project identifier
+      id:
+        type: string
+        description: Project ID (for frontend compatibility)
+      name:
+        type: string
+        description: Project name
+      description:
+        type: string
+        description: Project description
+      version:
+        type: string
+        description: Project version
+      owner:
+        type: string
+        description: Project owner
+      status:
+        type: string
+        description: Project status
+      created_at:
+        type: string
+        format: date-time
+        description: Creation timestamp
+      lastUpdated:
+        type: string
+        format: date-time
+        description: Last update timestamp
+      uploaded_documents:
+        type: array
+        items:
+          $ref: '#/definitions/Document'
+        description: List of uploaded documents
+
+  ProjectDetail:
+    type: object
+    properties:
+      project_id:
+        type: string
+        description: Unique project identifier
+      id:
+        type: string
+        description: Project ID (for frontend compatibility)
+      name:
+        type: string
+        description: Project name
+      description:
+        type: string
+        description: Project description
+      version:
+        type: string
+        description: Project version
+      owner:
+        type: string
+        description: Project owner
+      status:
+        type: string
+        description: Project status
+      created_at:
+        type: string
+        format: date-time
+        description: Creation timestamp
+      lastUpdated:
+        type: string
+        format: date-time
+        description: Last update timestamp
+      tasks:
+        type: array
+        items:
+          $ref: '#/definitions/Task'
+        description: List of tasks for the project
+      test_scenarios:
+        type: array
+        items:
+          $ref: '#/definitions/Scenario'
+        description: List of test scenarios for the project
+
+  Document:
+    type: object
+    properties:
+      document_id:
+        type: string
+        description: Unique document identifier
+      project_id:
+        type: string
+        description: Project ID
+      filename:
+        type: string
+        description: Original filename
+      filepath:
+        type: string
+        description: File path on server
+      is_current:
+        type: boolean
+        description: Whether this is the current document
+      uploaded_at:
+        type: string
+        format: date-time
+        description: Upload timestamp
+      metadata:
+        type: object
+        description: Additional document metadata
+
+  Task:
+    type: object
+    properties:
+      task_id:
+        type: string
+        description: Unique task identifier
+      project_id:
+        type: string
+        description: Project ID
+      task_name:
+        type: string
+        description: Task name
+      url:
+        type: string
+        description: Target URL for the task
+      context:
+        type: string
+        description: Task context/description
+      status:
+        type: string
+        description: Task status
+      created_at:
+        type: string
+        format: date-time
+        description: Creation timestamp
+      updated_at:
+        type: string
+        format: date-time
+        description: Last update timestamp
+
+  Scenario:
+    type: object
+    properties:
+      scenario_id:
+        type: string
+        description: Unique scenario identifier
+      project_id:
+        type: string
+        description: Project ID
+      scenario_name:
+        type: string
+        description: Scenario name
+      description:
+        type: string
+        description: Scenario description
+      test_cases:
+        type: array
+        items:
+          $ref: '#/definitions/TestCase'
+        description: List of test cases for this scenario
+      created_at:
+        type: string
+        format: date-time
+        description: Creation timestamp
+      updated_at:
+        type: string
+        format: date-time
+        description: Last update timestamp
+
+  TestCase:
+    type: object
+    properties:
+      test_case_id:
+        type: string
+        description: Unique test case identifier
+      project_id:
+        type: string
+        description: Project ID
+      scenario_id:
+        type: string
+        description: Scenario ID
+      test_case_name:
+        type: string
+        description: Test case name
+      requirement:
+        type: string
+        description: Test requirement
+      test_objective:
+        type: string
+        description: Test objective
+      scenario:
+        type: string
+        description: Test scenario description
+      expected_result:
+        type: string
+        description: Expected test result
+      created_at:
+        type: string
+        format: date-time
+        description: Creation timestamp
+      updated_at:
+        type: string
+        format: date-time
+        description: Last update timestamp
+
+  TestRun:
+    type: object
+    properties:
+      run_id:
+        type: string
+        description: Unique test run identifier
+      project_id:
+        type: string
+        description: Project ID
+      test_case_id:
+        type: string
+        description: Test case ID
+      scenario_id:
+        type: string
+        description: Scenario ID
+      status:
+        type: string
+        enum: [pending, running, passed, failed, error]
+        description: Test run status
+      result:
+        type: object
+        description: Test run result details
+      started_at:
+        type: string
+        format: date-time
+        description: Test start timestamp
+      completed_at:
+        type: string
+        format: date-time
+        description: Test completion timestamp
+      duration:
+        type: number
+        description: Test duration in seconds
+      error_message:
+        type: string
+        description: Error message if test failed
+      screenshots:
+        type: array
+        items:
+          type: string
+        description: List of screenshot paths
+
+  WorkflowConfig:
+    type: object
+    properties:
+      project_id:
+        type: string
+        description: Project ID
+      variables:
+        type: array
+        items:
+          $ref: '#/definitions/WorkflowVariable'
+        description: List of workflow variables
+      created_at:
+        type: string
+        format: date-time
+        description: Creation timestamp
+      updated_at:
+        type: string
+        format: date-time
+        description: Last update timestamp
+
+  WorkflowVariable:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique variable identifier
+      variable_name:
+        type: string
+        description: Variable name
+      key:
+        type: string
+        description: Variable key
+      value:
+        type: string
+        description: Variable value
+      type:
+        type: string
+        enum: [ssh_host, ssh_port, document, custom]
+        description: Variable type
+      description:
+        type: string
+        description: Variable description
+
+  WorkflowExecution:
+    type: object
+    properties:
+      execution_id:
+        type: string
+        description: Unique workflow execution identifier
+      project_id:
+        type: string
+        description: Project ID
+      status:
+        type: string
+        enum: [pending, running, completed, failed, cancelled]
+        description: Workflow execution status
+      variables:
+        type: array
+        items:
+          $ref: '#/definitions/WorkflowVariable'
+        description: Variables used in the execution
+      result:
+        type: object
+        description: Execution result data
+      started_at:
+        type: string
+        format: date-time
+        description: Workflow execution start timestamp
+      completed_at:
+        type: string
+        format: date-time
+        description: Workflow execution completion timestamp
+      error_message:
+        type: string
+        description: Error message if workflow failed
+
+  WorkflowTemplate:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Template name
+      variables:
+        type: array
+        items:
+          $ref: '#/definitions/WorkflowVariable'
+        description: Template variables

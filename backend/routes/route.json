@@ -112,6 +112,12 @@
                "methods": ["GET"]
             },
             {
+               "api_name": "project/document/download",
+               "controller": "document",
+               "function": "download_document",
+               "methods": ["GET"]
+            },
+            {
                "api_name": "scenario/save",
                "controller": "scenario",
                "function": "save_scenarios",
@@ -223,6 +229,48 @@
                "api_name": "test_run/list_by_project",
                "controller": "test_run",
                "function": "get_test_runs_by_project",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "workflow/config",
+               "controller": "workflow",
+               "function": "get_workflow_config",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "workflow/config",
+               "controller": "workflow",
+               "function": "save_workflow_config",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "workflow/execute",
+               "controller": "workflow",
+               "function": "execute_workflow",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "workflow/execution",
+               "controller": "workflow",
+               "function": "get_execution_status",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "workflow/executions",
+               "controller": "workflow",
+               "function": "get_execution_history",
+               "methods": ["GET"]
+            },
+            {
+               "api_name": "workflow/execution/cancel",
+               "controller": "workflow",
+               "function": "cancel_execution",
+               "methods": ["POST"]
+            },
+            {
+               "api_name": "workflow/templates",
+               "controller": "workflow",
+               "function": "get_templates",
                "methods": ["GET"]
             }
          ]

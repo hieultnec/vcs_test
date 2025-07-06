@@ -654,3 +654,132 @@ def get_test_scenarios(task_id):
         logger.error("Error getting test scenarios: %s", e)
         return []
 
+def get_workflow_config(project_id):
+    """Get workflow configuration for a project."""
+    logger.info(f"Getting workflow config for project: {project_id}")
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        config = db.workflow_configs.find_one({'project_id': project_id})
+        client.close()
+        return serialize_doc(config)
+    except Exception as e:
+        logger.error(f"Error getting workflow config: {e}")
+        raise e
+
+def save_workflow_config(config):
+    """Save workflow configuration."""
+    logger.info(f"Saving workflow config for project: {config.get('project_id')}")
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        
+        # Use upsert to create or update
+        result = db.workflow_configs.update_one(
+            {'project_id': config['project_id']},
+            {'$set': config},
+            upsert=True
+        )
+        client.close()
+        
+        if result.upserted_id or result.modified_count > 0:
+            logger.info(f"Workflow config saved successfully for project: {config.get('project_id')}")
+            return True
+        else:
+            logger.warning(f"No changes made to workflow config for project: {config.get('project_id')}")
+            return False
+    except Exception as e:
+        logger.error(f"Error saving workflow config: {e}")
+        raise e
+
+def save_workflow_execution(execution):
+    """Save workflow execution record."""
+    logger.info(f"Saving workflow execution: {execution.get('execution_id')}")
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        
+        result = db.workflow_executions.insert_one(execution)
+        client.close()
+        
+        if result.inserted_id:
+            logger.info(f"Workflow execution saved successfully: {execution.get('execution_id')}")
+            return True
+        else:
+            logger.error(f"Failed to save workflow execution: {execution.get('execution_id')}")
+            return False
+    except Exception as e:
+        logger.error(f"Error saving workflow execution: {e}")
+        raise e
+
+def get_workflow_execution(execution_id):
+    """Get workflow execution by ID."""
+    logger.info(f"Getting workflow execution: {execution_id}")
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        
+        execution = db.workflow_executions.find_one({'execution_id': execution_id})
+        client.close()
+        
+        return serialize_doc(execution)
+    except Exception as e:
+        logger.error(f"Error getting workflow execution: {e}")
+        raise e
+
+def update_workflow_execution(execution_id, update_data):
+    """Update workflow execution."""
+    logger.info(f"Updating workflow execution: {execution_id}")
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        
+        result = db.workflow_executions.update_one(
+            {'execution_id': execution_id},
+            {'$set': update_data}
+        )
+        client.close()
+        
+        if result.modified_count > 0:
+            logger.info(f"Workflow execution updated successfully: {execution_id}")
+            return True
+        else:
+            logger.warning(f"No changes made to workflow execution: {execution_id}")
+            return False
+    except Exception as e:
+        logger.error(f"Error updating workflow execution: {e}")
+        raise e
+
+def get_workflow_executions(project_id):
+    """Get all workflow executions for a project."""
+    logger.info(f"Getting workflow executions for project: {project_id}")
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        
+        executions = list(db.workflow_executions.find({'project_id': project_id}).sort('created_at', -1))
+        client.close()
+        
+        return serialize_doc(executions)
+    except Exception as e:
+        logger.error(f"Error getting workflow executions: {e}")
+        raise e
+

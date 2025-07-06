@@ -10,13 +10,13 @@ def setup_logger():
         os.makedirs(log_dir)
 
     # Create a logger
-    logger = logging.getLogger('taskforce')
+    logger = logging.getLogger('innolab')
     logger.setLevel(logging.INFO)
 
     # Create handlers
     console_handler = logging.StreamHandler()
     today = datetime.now().strftime('%Y-%m-%d')
-    file_handler = logging.FileHandler(f'logs/taskforce_{today}.log')
+    file_handler = logging.FileHandler(f'logs/innolab_{today}.log')
 
     # Create formatters and add it to handlers
     log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

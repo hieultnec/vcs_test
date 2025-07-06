@@ -1,7 +1,8 @@
-from flask import request
+from flask import request, send_file
 from utils import return_status
 from utils.logger import logger
 from services import document
+import os
 
 def upload_document():
     """Upload a document for a project."""
@@ -69,4 +70,30 @@ def get_document_detail():
         return return_status(200, "Success", doc)
     except Exception as e:
         logger.error(f"Failed to get document detail: {str(e)}")
+        return return_status(500, str(e))
+
+def download_document():
+    """Download a document by document_id."""
+    try:
+        document_id = request.args.get('document_id')
+        if not document_id:
+            return return_status(400, "document_id is required")
+        
+        doc = document.get_document_detail(document_id)
+        if not doc:
+            return return_status(404, "Document not found")
+        
+        filepath = doc.get('filepath')
+        if not filepath or not os.path.exists(filepath):
+            return return_status(404, "Document file not found")
+        
+        # Send the file for download
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=doc.get('filename', 'document'),
+            mimetype='application/octet-stream'
+        )
+    except Exception as e:
+        logger.error(f"Failed to download document: {str(e)}")
         return return_status(500, str(e)) 

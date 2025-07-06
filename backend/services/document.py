@@ -12,7 +12,6 @@ def allowed_file(filename):
 
 def upload_document(project_id, file_storage, is_current=False, metadata=None, user=None):
     """Save uploaded file to Dify, then create DB entry with Dify document ID."""
-    from services.workflow import get_workflow_config
     filename = file_storage.filename
     if not allowed_file(filename):
         raise ValueError(f"File type not allowed: {filename}")

@@ -3,57 +3,75 @@ import os
 from datetime import datetime
 from utils import database
 from utils.logger import logger
-from utils.database import get_connection
 from services.document import upload_document
+from services import config
 
-def get_workflow_config(project_id):
-    """Get workflow configuration for a project."""
-    logger.info(f"Getting workflow config for project: {project_id}")
-    try:
-        config = database.get_workflow_config(project_id)
-        if config:
-            logger.info(f"Found workflow config for project: {project_id}")
-            return config
-        else:
-            logger.info(f"No workflow config found for project: {project_id}")
-            return {
-                "project_id": project_id,
-                "variables": [],
-                "created_at": None,
-                "updated_at": None
-            }
-    except Exception as e:
-        logger.error(f"Error getting workflow config for project {project_id}: {str(e)}")
-        raise e
+def create_workflow(project_id, name, dify_workflow_run_id, description, inputs):
+    workflow_id = str(uuid.uuid4())
+    workflow = {
+        'workflow_id': workflow_id,
+        'project_id': project_id,
+        'name': name,
+        'dify_workflow_run_id': dify_workflow_run_id,
+        'description': description,
+        'inputs': inputs,
+        'created_at': datetime.utcnow(),
+        'updated_at': datetime.utcnow(),
+    }
+    return database.create_workflow(workflow)
 
-def save_workflow_config(project_id, variables):
-    """Save workflow configuration for a project."""
-    logger.info(f"Saving workflow config for project: {project_id}")
-    try:
-        now = datetime.utcnow()
-        config = {
-            "project_id": project_id,
-            "variables": variables,
-            "updated_at": now
-        }
-        
-        # Check if config already exists
-        existing_config = database.get_workflow_config(project_id)
-        if existing_config:
-            config["created_at"] = existing_config.get("created_at", now)
-        else:
-            config["created_at"] = now
-        
-        success = database.save_workflow_config(config)
-        if success:
-            logger.info(f"Successfully saved workflow config for project: {project_id}")
-            return config
-        else:
-            logger.error(f"Failed to save workflow config for project: {project_id}")
-            raise Exception("Failed to save workflow configuration")
-    except Exception as e:
-        logger.error(f"Error saving workflow config for project {project_id}: {str(e)}")
-        raise e
+def get_workflow(workflow_id):
+    return database.get_workflow(workflow_id)
+
+def update_workflow(workflow_id, update_data):
+    return database.update_workflow(workflow_id, update_data)
+
+def delete_workflow(workflow_id):
+    return database.delete_workflow(workflow_id)
+
+def list_workflows(project_id=None):
+    return database.list_workflows(project_id)
+
+def create_execution(workflow_id, status, inputs, outputs=None, error=None, total_steps=None, total_tokens=None):
+    execution_id = str(uuid.uuid4())
+    now = datetime.utcnow()
+    execution = {
+        'id': execution_id,
+        'workflow_id': workflow_id,
+        'status': status,
+        'inputs': inputs,
+        'outputs': outputs,
+        'error': error,
+        'total_steps': total_steps,
+        'total_tokens': total_tokens,
+        'created_at': now,
+        'finished_at': None,
+        'elapsed_time': None,
+    }
+    return database.create_workflow_execution(execution)
+
+def finish_execution(execution_id, status, outputs=None, error=None, total_steps=None, total_tokens=None):
+    finished_at = datetime.utcnow()
+    execution = database.get_workflow_execution(execution_id)
+    if not execution:
+        return None
+    elapsed_time = (finished_at - execution['created_at']).total_seconds() if execution.get('created_at') else None
+    update = {
+        'status': status,
+        'outputs': outputs,
+        'error': error,
+        'total_steps': total_steps,
+        'total_tokens': total_tokens,
+        'finished_at': finished_at,
+        'elapsed_time': elapsed_time,
+    }
+    return database.update_workflow_execution(execution_id, update)
+
+def get_execution_history(workflow_id=None):
+    return database.list_workflow_executions(workflow_id)
+
+def get_execution(execution_id):
+    return database.get_workflow_execution(execution_id)
 
 def execute_workflow(project_id, variables):
     """Execute a workflow with given variables."""
@@ -216,24 +234,6 @@ def get_templates():
     except Exception as e:
         logger.error(f"Error getting workflow templates: {str(e)}")
         raise e
-
-def get_workflow_template(project_id):
-    """Get workflow input template for a project."""
-    db = get_connection()[MONGODB_DATABASE]
-    template = db.workflow_templates.find_one({'project_id': project_id})
-    if template:
-        template.pop('_id', None)
-    return template or {}
-
-def save_workflow_template(project_id, template):
-    """Save or update workflow input template for a project."""
-    db = get_connection()[MONGODB_DATABASE]
-    db.workflow_templates.update_one(
-        {'project_id': project_id},
-        {'$set': {'project_id': project_id, 'template': template}},
-        upsert=True
-    )
-    return True
 
 def upload_file_to_dify(project_id, file_storage, is_current=False, metadata=None, user=None):
     """Proxy to upload_document for Dify integration (for workflow controller compatibility)."""

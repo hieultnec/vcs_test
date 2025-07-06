@@ -251,14 +251,14 @@
             },
             {
                "api_name": "workflow/config",
-               "controller": "workflow",
-               "function": "get_workflow_config",
+               "controller": "config",
+               "function": "get_config",
                "methods": ["GET"]
             },
             {
                "api_name": "workflow/config",
-               "controller": "workflow",
-               "function": "save_workflow_config",
+               "controller": "config",
+               "function": "save_config",
                "methods": ["POST"]
             },
             {
@@ -295,6 +295,54 @@
                "path": "/api/workflow/template",
                "methods": ["GET", "POST"],
                "handler": "controllers.workflow.workflow_template"
+            },
+            {
+               "rule": "/api/workflow/create",
+               "endpoint": "create_workflow",
+               "view_func": "workflow.create_workflow",
+               "methods": ["POST"]
+            },
+            {
+               "rule": "/api/workflow/get",
+               "endpoint": "get_workflow",
+               "view_func": "workflow.get_workflow",
+               "methods": ["GET"]
+            },
+            {
+               "rule": "/api/workflow/update",
+               "endpoint": "update_workflow",
+               "view_func": "workflow.update_workflow",
+               "methods": ["POST"]
+            },
+            {
+               "rule": "/api/workflow/delete",
+               "endpoint": "delete_workflow",
+               "view_func": "workflow.delete_workflow",
+               "methods": ["DELETE"]
+            },
+            {
+               "rule": "/api/workflow/list",
+               "endpoint": "list_workflows",
+               "view_func": "workflow.list_workflows",
+               "methods": ["GET"]
+            },
+            {
+               "rule": "/api/workflow/execute",
+               "endpoint": "execute_workflow",
+               "view_func": "workflow.execute_workflow",
+               "methods": ["POST"]
+            },
+            {
+               "rule": "/api/workflow/execution/history",
+               "endpoint": "get_execution_history",
+               "view_func": "workflow.get_execution_history",
+               "methods": ["GET"]
+            },
+            {
+               "rule": "/api/workflow/execution/get",
+               "endpoint": "get_execution",
+               "view_func": "workflow.get_execution",
+               "methods": ["GET"]
             }
          ]
       }

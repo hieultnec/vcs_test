@@ -131,5 +131,65 @@ export const workflowService = {
       console.error('Failed to fetch workflow templates:', apiError);
       throw new Error(ApiErrorHandler.getErrorMessage(apiError));
     }
-  }
+  },
+
+  // CRUD for workflows
+  async listWorkflows(projectId: string) {
+    try {
+      const response = await apiClient.get(`/api/workflow/list?project_id=${projectId}`);
+      return response.data.data || [];
+    } catch (error) {
+      const apiError = ApiErrorHandler.handleError(error);
+      throw new Error(ApiErrorHandler.getErrorMessage(apiError));
+    }
+  },
+
+  async getWorkflow(workflowId: string) {
+    try {
+      const response = await apiClient.get(`/api/workflow/get?workflow_id=${workflowId}`);
+      return response.data.data;
+    } catch (error) {
+      const apiError = ApiErrorHandler.handleError(error);
+      throw new Error(ApiErrorHandler.getErrorMessage(apiError));
+    }
+  },
+
+  async createWorkflow({ project_id, name, description, dify_workflow_run_id, inputs }: { project_id: string; name: string; description?: string; dify_workflow_run_id: string; inputs?: unknown[] }) {
+    try {
+      const response = await apiClient.post('/api/workflow/create', {
+        project_id,
+        name,
+        description,
+        dify_workflow_run_id,
+        inputs: inputs || [],
+      });
+      return response.data.data;
+    } catch (error) {
+      const apiError = ApiErrorHandler.handleError(error);
+      throw new Error(ApiErrorHandler.getErrorMessage(apiError));
+    }
+  },
+
+  async updateWorkflow({ workflow_id, update_data }: { workflow_id: string; update_data: unknown }) {
+    try {
+      const response = await apiClient.post('/api/workflow/update', {
+        workflow_id,
+        update_data,
+      });
+      return response.data.data;
+    } catch (error) {
+      const apiError = ApiErrorHandler.handleError(error);
+      throw new Error(ApiErrorHandler.getErrorMessage(apiError));
+    }
+  },
+
+  async deleteWorkflow(workflowId: string) {
+    try {
+      await apiClient.delete(`/api/workflow/delete?workflow_id=${workflowId}`);
+      return workflowId;
+    } catch (error) {
+      const apiError = ApiErrorHandler.handleError(error);
+      throw new Error(ApiErrorHandler.getErrorMessage(apiError));
+    }
+  },
 }; 

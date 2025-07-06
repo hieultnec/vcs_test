@@ -12,7 +12,7 @@ const Dashboard = () => {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Test Management Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">VCS - Version Control System</h1>
               <p className="text-gray-600">Manage your test projects and track version history</p>
             </div>
             <Link to="/create-project">

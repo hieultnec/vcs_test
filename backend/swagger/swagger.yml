@@ -1495,70 +1495,10 @@ paths:
         '500':
           description: Internal server error
 
-  /api/workflow/config:
-    get:
-      summary: Get workflow configuration for a project
-      tags: [Workflow]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: The ID of the project
-      operationId: controllers.workflow.get_workflow_config
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/WorkflowConfig'
-        '400':
-          description: Bad request - missing project ID
-        '500':
-          description: Internal server error
+  /api/workflow/create:
     post:
-      summary: Save workflow configuration for a project
-      tags: [Workflow]
-      consumes:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/WorkflowConfig'
-      operationId: controllers.workflow.save_workflow_config
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/WorkflowConfig'
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error
-
-  /api/workflow/execute:
-    post:
-      summary: Execute a workflow with given variables
-      tags: [Workflow]
-      consumes:
-        - application/json
+      summary: Create a new workflow definition
+      operationId: controllers.workflow.create_workflow
       parameters:
         - name: body
           in: body
@@ -1568,15 +1508,23 @@ paths:
             properties:
               project_id:
                 type: string
-                description: The ID of the project
-              variables:
+              name:
+                type: string
+              dify_workflow_run_id:
+                type: string
+              description:
+                type: string
+              inputs:
                 type: array
                 items:
-                  $ref: '#/definitions/WorkflowVariable'
-      operationId: controllers.workflow.execute_workflow
+                  type: object
+            required:
+              - project_id
+              - name
+              - dify_workflow_run_id
       responses:
         '200':
-          description: Successful operation
+          description: Workflow created
           schema:
             type: object
             properties:
@@ -1584,29 +1532,21 @@ paths:
                 type: integer
               message:
                 type: string
-              result:
-                $ref: '#/definitions/WorkflowExecution'
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error
+              data:
+                $ref: '#/definitions/Workflow'
 
-  /api/workflow/execution:
+  /api/workflow/get:
     get:
-      summary: Get workflow execution status
-      tags: [Workflow]
-      produces:
-        - application/json
+      summary: Get a workflow definition by workflow_id
+      operationId: controllers.workflow.get_workflow
       parameters:
-        - name: execution_id
-          in: query
-          required: true
+        - in: query
+          name: workflow_id
           type: string
-          description: The ID of the execution
-      operationId: controllers.workflow.get_execution_status
+          required: true
       responses:
         '200':
-          description: Successful operation
+          description: Workflow found
           schema:
             type: object
             properties:
@@ -1614,18 +1554,166 @@ paths:
                 type: integer
               message:
                 type: string
-              result:
+              data:
+                $ref: '#/definitions/Workflow'
+        '404':
+          description: Workflow not found
+
+  /api/workflow/update:
+    post:
+      summary: Update a workflow definition
+      operationId: controllers.workflow.update_workflow
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              workflow_id:
+                type: string
+              update_data:
+                type: object
+            required:
+              - workflow_id
+      responses:
+        '200':
+          description: Workflow updated
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              data:
+                $ref: '#/definitions/Workflow'
+
+  /api/workflow/delete:
+    delete:
+      summary: Delete a workflow definition
+      operationId: controllers.workflow.delete_workflow
+      parameters:
+        - in: query
+          name: workflow_id
+          type: string
+          required: true
+      responses:
+        '200':
+          description: Workflow deleted
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+
+  /api/workflow/list:
+    get:
+      summary: List all workflows for a project
+      operationId: controllers.workflow.list_workflows
+      parameters:
+        - in: query
+          name: project_id
+          type: string
+          required: true
+      responses:
+        '200':
+          description: List of workflows
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/Workflow'
+
+  /api/workflow/execute:
+    post:
+      summary: Execute a workflow
+      operationId: controllers.workflow.execute_workflow
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              workflow_id:
+                type: string
+              inputs:
+                type: object
+            required:
+              - workflow_id
+      responses:
+        '200':
+          description: Workflow execution started
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              data:
                 $ref: '#/definitions/WorkflowExecution'
-        '400':
-          description: Bad request - missing execution ID
+
+  /api/workflow/execution/history:
+    get:
+      summary: Get execution history for a workflow
+      operationId: controllers.workflow.get_execution_history
+      parameters:
+        - in: query
+          name: workflow_id
+          type: string
+          required: true
+      responses:
+        '200':
+          description: List of workflow executions
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/WorkflowExecution'
+
+  /api/workflow/execution/get:
+    get:
+      summary: Get a workflow execution by execution_id
+      operationId: controllers.workflow.get_execution
+      parameters:
+        - in: query
+          name: execution_id
+          type: string
+          required: true
+      responses:
+        '200':
+          description: Workflow execution found
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              data:
+                $ref: '#/definitions/WorkflowExecution'
         '404':
           description: Execution not found
-        '500':
-          description: Internal server error
 
-  /api/workflow/executions:
+  /api/workflow/config:
     get:
-      summary: Get workflow execution history for a project
+      summary: Get workflow config for a project
       tags: [Workflow]
       produces:
         - application/json
@@ -1634,8 +1722,8 @@ paths:
           in: query
           required: true
           type: string
-          description: The ID of the project
-      operationId: controllers.workflow.get_execution_history
+          description: Project ID
+      operationId: controllers.config.get_config
       responses:
         '200':
           description: Successful operation
@@ -1647,54 +1735,37 @@ paths:
               message:
                 type: string
               result:
-                type: array
-                items:
-                  $ref: '#/definitions/WorkflowExecution'
+                type: object
         '400':
-          description: Bad request - missing project ID
+          description: Bad request - missing project_id
         '500':
           description: Internal server error
-
-  /api/workflow/execution/cancel:
     post:
-      summary: Cancel a workflow execution
+      summary: Save workflow config for a project
       tags: [Workflow]
-      produces:
+      consumes:
         - application/json
       parameters:
-        - name: execution_id
-          in: query
+        - name: body
+          in: body
           required: true
-          type: string
-          description: The ID of the execution to cancel
-      operationId: controllers.workflow.cancel_execution
-      responses:
-        '200':
-          description: Successful operation
           schema:
             type: object
+            required:
+              - project_id
+              - variables
             properties:
-              status:
-                type: integer
-              message:
+              project_id:
                 type: string
-        '400':
-          description: Bad request - missing execution ID
-        '404':
-          description: Execution not found
-        '500':
-          description: Internal server error
-
-  /api/workflow/templates:
-    get:
-      summary: Get available workflow templates
-      tags: [Workflow]
-      produces:
-        - application/json
-      operationId: controllers.workflow.get_templates
+                description: Project ID
+              variables:
+                type: array
+                items:
+                  type: object
+      operationId: controllers.config.save_config
       responses:
         '200':
-          description: Successful operation
+          description: Workflow config saved
           schema:
             type: object
             properties:
@@ -1703,9 +1774,9 @@ paths:
               message:
                 type: string
               result:
-                type: array
-                items:
-                  $ref: '#/definitions/WorkflowTemplate'
+                type: object
+        '400':
+          description: Bad request - missing project_id
         '500':
           description: Internal server error
 
@@ -1713,347 +1784,117 @@ definitions:
   Project:
     type: object
     properties:
-      project_id:
-        type: string
-        description: Unique project identifier
       id:
         type: string
-        description: Project ID (for frontend compatibility)
       name:
         type: string
-        description: Project name
       description:
         type: string
-        description: Project description
-      version:
-        type: string
-        description: Project version
       owner:
         type: string
-        description: Project owner
       status:
         type: string
-        description: Project status
-      created_at:
-        type: string
-        format: date-time
-        description: Creation timestamp
-      lastUpdated:
-        type: string
-        format: date-time
-        description: Last update timestamp
-      uploaded_documents:
-        type: array
-        items:
-          $ref: '#/definitions/Document'
-        description: List of uploaded documents
 
   ProjectDetail:
     type: object
     properties:
-      project_id:
-        type: string
-        description: Unique project identifier
-      id:
-        type: string
-        description: Project ID (for frontend compatibility)
-      name:
-        type: string
-        description: Project name
-      description:
-        type: string
-        description: Project description
-      version:
-        type: string
-        description: Project version
-      owner:
-        type: string
-        description: Project owner
-      status:
-        type: string
-        description: Project status
-      created_at:
-        type: string
-        format: date-time
-        description: Creation timestamp
-      lastUpdated:
-        type: string
-        format: date-time
-        description: Last update timestamp
+      project:
+        $ref: '#/definitions/Project'
+      scenarios:
+        type: array
+        items:
+          $ref: '#/definitions/Scenario'
       tasks:
         type: array
         items:
           $ref: '#/definitions/Task'
-        description: List of tasks for the project
-      test_scenarios:
-        type: array
-        items:
-          $ref: '#/definitions/Scenario'
-        description: List of test scenarios for the project
 
   Document:
     type: object
     properties:
-      document_id:
+      id:
         type: string
-        description: Unique document identifier
-      project_id:
+      name:
         type: string
-        description: Project ID
-      filename:
+      url:
         type: string
-        description: Original filename
-      filepath:
-        type: string
-        description: File path on server
-      dify_document_id:
-        type: string
-        description: Dify document ID for external processing
-      is_current:
-        type: boolean
-        description: Whether this is the current document
-      uploaded_at:
-        type: string
-        format: date-time
-        description: Upload timestamp
-      metadata:
-        type: object
-        description: Additional document metadata
 
   Task:
     type: object
     properties:
-      task_id:
+      id:
         type: string
-        description: Unique task identifier
-      project_id:
-        type: string
-        description: Project ID
       task_name:
         type: string
-        description: Task name
       url:
         type: string
-        description: Target URL for the task
       context:
         type: string
-        description: Task context/description
       status:
         type: string
-        description: Task status
-      created_at:
-        type: string
-        format: date-time
-        description: Creation timestamp
-      updated_at:
-        type: string
-        format: date-time
-        description: Last update timestamp
 
   Scenario:
     type: object
     properties:
       id:
         type: string
-        description: Unique scenario identifier
-      project_id:
-        type: string
-        description: Project ID
       name:
         type: string
-        description: Scenario name
       description:
         type: string
-        description: Scenario description
       priority:
         type: string
-        enum: [High, Medium, Low]
-        description: Scenario priority level
       version:
         type: string
-        description: Scenario version
-      test_cases:
-        type: array
-        items:
-          $ref: '#/definitions/TestCase'
-        description: List of test cases for this scenario
-      created_at:
-        type: string
-        format: date-time
-        description: Creation timestamp
-      updated_at:
-        type: string
-        format: date-time
-        description: Last update timestamp
 
   TestCase:
     type: object
     properties:
       id:
         type: string
-        description: Unique test case identifier
-      project_id:
+      name:
         type: string
-        description: Project ID
-      scenario_id:
-        type: string
-        description: Scenario ID
-      title:
-        type: string
-        description: Test case title
       description:
         type: string
-        description: Test case description
       steps:
         type: array
         items:
           type: string
-        description: List of test steps
-      expected_result:
-        type: string
-        description: Expected test result
-      status:
-        type: string
-        enum: [untested, passed, failed]
-        description: Test case status
-      version:
-        type: string
-        description: Test case version
-      created_at:
-        type: string
-        format: date-time
-        description: Creation timestamp
-      updated_at:
-        type: string
-        format: date-time
-        description: Last update timestamp
 
   TestRun:
     type: object
     properties:
-      run_id:
+      id:
         type: string
-        description: Unique test run identifier
-      project_id:
-        type: string
-        description: Project ID
-      test_case_id:
-        type: string
-        description: Test case ID
-      scenario_id:
-        type: string
-        description: Scenario ID
       status:
         type: string
-        enum: [pending, running, passed, failed, error]
-        description: Test run status
-      result:
-        type: object
-        description: Test run result details
       started_at:
         type: string
-        format: date-time
-        description: Test start timestamp
-      completed_at:
+      finished_at:
         type: string
-        format: date-time
-        description: Test completion timestamp
-      duration:
-        type: number
-        description: Test duration in seconds
-      error_message:
-        type: string
-        description: Error message if test failed
-      screenshots:
-        type: array
-        items:
-          type: string
-        description: List of screenshot paths
 
-  WorkflowConfig:
-    type: object
-    properties:
-      project_id:
-        type: string
-        description: Project ID
-      variables:
-        type: array
-        items:
-          $ref: '#/definitions/WorkflowVariable'
-        description: List of workflow variables
-      created_at:
-        type: string
-        format: date-time
-        description: Creation timestamp
-      updated_at:
-        type: string
-        format: date-time
-        description: Last update timestamp
-
-  WorkflowVariable:
+  Workflow:
     type: object
     properties:
       id:
         type: string
-        description: Unique variable identifier
-      variable_name:
+      name:
         type: string
-        description: Variable name
-      key:
-        type: string
-        description: Variable key
-      value:
-        type: string
-        description: Variable value
-      type:
-        type: string
-        enum: [ssh_host, ssh_port, document, url, custom, secret]
-        description: Variable type
       description:
         type: string
-        description: Variable description
+      project_id:
+        type: string
 
   WorkflowExecution:
     type: object
     properties:
-      execution_id:
+      id:
         type: string
-        description: Unique workflow execution identifier
-      project_id:
+      workflow_id:
         type: string
-        description: Project ID
       status:
         type: string
-        enum: [pending, running, completed, failed, cancelled]
-        description: Workflow execution status
-      variables:
-        type: array
-        items:
-          $ref: '#/definitions/WorkflowVariable'
-        description: Variables used in the execution
-      result:
-        type: object
-        description: Execution result data
       started_at:
         type: string
-        format: date-time
-        description: Workflow execution start timestamp
-      completed_at:
+      finished_at:
         type: string
-        format: date-time
-        description: Workflow execution completion timestamp
-      error_message:
-        type: string
-        description: Error message if workflow failed
-
-  WorkflowTemplate:
-    type: object
-    properties:
-      name:
-        type: string
-        description: Template name
-      variables:
-        type: array
-        items:
-          $ref: '#/definitions/WorkflowVariable'
-        description: Template variables

@@ -1,9 +1,9 @@
-
 import { configureStore } from '@reduxjs/toolkit';
 import projectSlice from './slices/projectSlice';
 import scenarioSlice from './slices/scenarioSlice';
 import testCaseSlice from './slices/testCaseSlice';
 import testRunSlice from './slices/testRunSlice';
+import workflowSlice from './slices/workflowSlice';
 
 export const store = configureStore({
   reducer: {
@@ -11,6 +11,7 @@ export const store = configureStore({
     scenarios: scenarioSlice,
     testCases: testCaseSlice,
     testRuns: testRunSlice,
+    workflows: workflowSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

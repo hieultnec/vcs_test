@@ -4,6 +4,7 @@ import scenarioSlice from './slices/scenarioSlice';
 import testCaseSlice from './slices/testCaseSlice';
 import testRunSlice from './slices/testRunSlice';
 import workflowSlice from './slices/workflowSlice';
+import executionsReducer from './slices/executionSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     testCases: testCaseSlice,
     testRuns: testRunSlice,
     workflows: workflowSlice,
+    executions: executionsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -516,6 +516,7 @@ def create_document(data):
             'project_id': data['project_id'],
             'filename': data['filename'],
             'filepath': data['filepath'],
+            'dify_document_id': data.get('dify_document_id', ''),
             'is_current': data.get('is_current', False),
             'uploaded_at': data.get('uploaded_at', datetime.utcnow()),
             'metadata': data.get('metadata', {})
@@ -890,3 +891,46 @@ def list_workflow_executions(workflow_id=None):
         logger.error(f"Error listing workflow executions: {e}")
         raise e
 
+def get_workflow_config(project_id):
+    """Get workflow configuration for a project."""
+    logger.info(f"Getting workflow config for project: {project_id}")
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        config = db.workflow_configs.find_one({'project_id': project_id})
+        client.close()
+        return serialize_doc(config)
+    except Exception as e:
+        logger.error(f"Error getting workflow config: {e}")
+        raise e
+
+def save_workflow_config(config):
+    """Save workflow configuration."""
+    logger.info(f"Saving workflow config for project: {config.get('project_id')}")
+    try:
+        client = get_connection()
+        if not client:
+            logger.error("Failed to connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
+        db = client[MONGODB_DATABASE]
+        
+        # Use upsert to create or update
+        result = db.workflow_configs.update_one(
+            {'project_id': config['project_id']},
+            {'$set': config},
+            upsert=True
+        )
+        client.close()
+        
+        if result.upserted_id or result.modified_count > 0:
+            logger.info(f"Workflow config saved successfully for project: {config.get('project_id')}")
+            return True
+        else:
+            logger.warning(f"No changes made to workflow config for project: {config.get('project_id')}")
+            return False
+    except Exception as e:
+        logger.error(f"Error saving workflow config: {e}")
+        raise e

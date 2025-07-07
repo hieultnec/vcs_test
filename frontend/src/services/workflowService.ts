@@ -92,17 +92,14 @@ export const workflowService = {
     }
   },
 
-  // Get workflow execution history for a project
-  async getExecutionHistory(projectId: string): Promise<WorkflowExecution[]> {
+  // Get workflow execution history for a workflow
+  async getExecutionHistory(workflowId: string): Promise<WorkflowExecution[]> {
     try {
-      const response = await apiClient.get(`/api/workflow/executions?project_id=${projectId}`);
-      if (Array.isArray(response.data)) {
-        return response.data;
-      }
-      return response.data.result || [];
+      const response = await apiClient.get(`/api/workflow/execution/history?workflow_id=${workflowId}`);
+      return response.data.data || [];
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
-      console.error(`Failed to fetch execution history for project ${projectId}:`, apiError);
+      console.error(`Failed to fetch execution history for workflow ${workflowId}:`, apiError);
       throw new Error(ApiErrorHandler.getErrorMessage(apiError));
     }
   },
@@ -137,7 +134,7 @@ export const workflowService = {
   async listWorkflows(projectId: string) {
     try {
       const response = await apiClient.get(`/api/workflow/list?project_id=${projectId}`);
-      return response.data.data || [];
+      return response.data.result || [];
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
       throw new Error(ApiErrorHandler.getErrorMessage(apiError));
@@ -147,7 +144,7 @@ export const workflowService = {
   async getWorkflow(workflowId: string) {
     try {
       const response = await apiClient.get(`/api/workflow/get?workflow_id=${workflowId}`);
-      return response.data.data;
+      return response.data.result;
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
       throw new Error(ApiErrorHandler.getErrorMessage(apiError));
@@ -163,7 +160,7 @@ export const workflowService = {
         dify_workflow_run_id,
         inputs: inputs || [],
       });
-      return response.data.data;
+      return response.data.result;
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
       throw new Error(ApiErrorHandler.getErrorMessage(apiError));
@@ -176,7 +173,7 @@ export const workflowService = {
         workflow_id,
         update_data,
       });
-      return response.data.data;
+      return response.data.result;
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
       throw new Error(ApiErrorHandler.getErrorMessage(apiError));
@@ -187,6 +184,50 @@ export const workflowService = {
     try {
       await apiClient.delete(`/api/workflow/delete?workflow_id=${workflowId}`);
       return workflowId;
+    } catch (error) {
+      const apiError = ApiErrorHandler.handleError(error);
+      throw new Error(ApiErrorHandler.getErrorMessage(apiError));
+    }
+  },
+
+  /**
+   * Run a workflow via Dify and trace execution
+   * @param project_id Project ID
+   * @param workflow_id Workflow ID
+   * @param inputs Workflow input variables
+   * @param user User identifier (optional)
+   * @param response_mode Dify response mode (optional, default 'blocking')
+   * @returns { status, message, dify_response, execution_id, scenarios_saved }
+   */
+  async runDifyWorkflow({ project_id, workflow_id, inputs, user, response_mode }: {
+    project_id: string;
+    workflow_id: string;
+    inputs: Record<string, unknown>;
+    user?: string;
+    response_mode?: string;
+  }): Promise<{ status: number; message: string; dify_response: unknown; execution_id: string; scenarios_saved: boolean }> {
+    try {
+      const response = await apiClient.post('/api/workflow/run', {
+        project_id,
+        workflow_id,
+        inputs,
+        user,
+        response_mode,
+      });
+      return response.data;
+    } catch (error) {
+      const apiError = ApiErrorHandler.handleError(error);
+      throw new Error(ApiErrorHandler.getErrorMessage(apiError));
+    }
+  },
+
+  /**
+   * Get all workflow executions for a project
+   */
+  async getExecutionsByProject(projectId: string): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await apiClient.get(`/api/workflow/execution/list_by_project?project_id=${projectId}`);
+      return response.data.result || [];
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
       throw new Error(ApiErrorHandler.getErrorMessage(apiError));

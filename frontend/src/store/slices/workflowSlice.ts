@@ -36,7 +36,7 @@ const initialState: WorkflowState = {
 
 // Async thunks for CRUD
 export const fetchWorkflows = createAsyncThunk<Workflow[], string>(
-  'workflow/fetchWorkflows',
+  'workflows/fetchWorkflows',
   async (projectId, { rejectWithValue }) => {
     try {
       return await workflowService.listWorkflows(projectId);
@@ -47,7 +47,7 @@ export const fetchWorkflows = createAsyncThunk<Workflow[], string>(
 );
 
 export const fetchWorkflow = createAsyncThunk<Workflow, string>(
-  'workflow/fetchWorkflow',
+  'workflows/fetchWorkflow',
   async (workflowId, { rejectWithValue }) => {
     try {
       return await workflowService.getWorkflow(workflowId);
@@ -58,7 +58,7 @@ export const fetchWorkflow = createAsyncThunk<Workflow, string>(
 );
 
 export const createWorkflow = createAsyncThunk<Workflow, { project_id: string; name: string; description?: string; dify_workflow_run_id: string; inputs?: WorkflowInputField[] }>(
-  'workflow/createWorkflow',
+  'workflows/createWorkflow',
   async (payload, { rejectWithValue }) => {
     try {
       return await workflowService.createWorkflow(payload);
@@ -69,7 +69,7 @@ export const createWorkflow = createAsyncThunk<Workflow, { project_id: string; n
 );
 
 export const updateWorkflow = createAsyncThunk<Workflow, { workflow_id: string; update_data: Partial<Workflow> }>(
-  'workflow/updateWorkflow',
+  'workflows/updateWorkflow',
   async (payload, { rejectWithValue }) => {
     try {
       return await workflowService.updateWorkflow(payload);
@@ -80,7 +80,7 @@ export const updateWorkflow = createAsyncThunk<Workflow, { workflow_id: string; 
 );
 
 export const deleteWorkflow = createAsyncThunk<string, string>(
-  'workflow/deleteWorkflow',
+  'workflows/deleteWorkflow',
   async (workflowId, { rejectWithValue }) => {
     try {
       return await workflowService.deleteWorkflow(workflowId);
@@ -91,7 +91,7 @@ export const deleteWorkflow = createAsyncThunk<string, string>(
 );
 
 const workflowSlice = createSlice({
-  name: 'workflow',
+  name: 'workflows',
   initialState,
   reducers: {
     setSelectedWorkflowId(state, action: PayloadAction<string | null>) {

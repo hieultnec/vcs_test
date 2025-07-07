@@ -1780,6 +1780,123 @@ paths:
         '500':
           description: Internal server error
 
+  /api/workflow/run:
+    post:
+      summary: Run a workflow via Dify and trace execution
+      tags: [Workflow]
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - project_id
+              - workflow_id
+              - inputs
+            properties:
+              project_id:
+                type: string
+                description: Project ID
+              workflow_id:
+                type: string
+                description: Workflow ID
+              inputs:
+                type: object
+                description: Workflow input variables
+              user:
+                type: string
+                description: User identifier (optional)
+              response_mode:
+                type: string
+                description: Dify response mode (optional, default 'blocking')
+      operationId: controllers.workflow.run_dify_workflow_controller
+      responses:
+        '200':
+          description: Dify workflow run successful
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              dify_response:
+                type: object
+                description: Raw response from Dify API
+              execution_id:
+                type: string
+        '400':
+          description: Bad request - missing required fields
+        '500':
+          description: Internal server error or Dify run failed
+
+  /api/workflow/execution/detail:
+    get:
+      summary: Get workflow execution detail by id
+      tags: [Workflow]
+      produces:
+        - application/json
+      parameters:
+        - name: id
+          in: query
+          required: true
+          type: string
+          description: Workflow execution id
+      operationId: controllers.workflow.get_workflow_execution_detail
+      responses:
+        '200':
+          description: Workflow execution found
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+        '400':
+          description: Bad request - missing id
+        '404':
+          description: Execution not found
+        '500':
+          description: Internal server error
+
+  /api/workflow/execution/list_by_project:
+    get:
+      summary: List all workflow executions for a project
+      tags: [Workflow]
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+          description: Project ID
+      operationId: controllers.workflow.list_workflow_executions_by_project
+      responses:
+        '200':
+          description: List of workflow executions
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  type: object
+        '400':
+          description: Bad request - missing project_id
+        '500':
+          description: Internal server error
+
 definitions:
   Project:
     type: object

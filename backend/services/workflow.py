@@ -3,8 +3,10 @@ import os
 from datetime import datetime
 from utils import database
 from utils.logger import logger
-from services.document import upload_document
+from services.document import upload_document, get_document_detail
 from services import config
+import requests
+from services.scenario import ScenarioService
 
 def create_workflow(project_id, name, dify_workflow_run_id, description, inputs):
     workflow_id = str(uuid.uuid4())
@@ -32,12 +34,13 @@ def delete_workflow(workflow_id):
 def list_workflows(project_id=None):
     return database.list_workflows(project_id)
 
-def create_execution(workflow_id, status, inputs, outputs=None, error=None, total_steps=None, total_tokens=None):
+def create_execution(workflow_id, project_id, status, inputs, outputs=None, error=None, total_steps=None, total_tokens=None):
     execution_id = str(uuid.uuid4())
     now = datetime.utcnow()
     execution = {
         'id': execution_id,
         'workflow_id': workflow_id,
+        'project_id': project_id,
         'status': status,
         'inputs': inputs,
         'outputs': outputs,
@@ -237,4 +240,123 @@ def get_templates():
 
 def upload_file_to_dify(project_id, file_storage, is_current=False, metadata=None, user=None):
     """Proxy to upload_document for Dify integration (for workflow controller compatibility)."""
-    return upload_document(project_id, file_storage, is_current, metadata, user) 
+    return upload_document(project_id, file_storage, is_current, metadata, user)
+
+def run_dify_workflow(project_id, workflow_id, inputs, user="hieult", response_mode="blocking"):
+    """
+    Run a workflow via Dify API, save execution trace, and return Dify response and execution id.
+    """
+    from services.config import get_config
+    logger.info(f"Running Dify workflow for project {project_id}, workflow {workflow_id}")
+    config = get_config(project_id)
+    dify_api_url = None
+    dify_api_key = None
+    if config and config.get('variables'):
+        for var in config['variables']:
+            if var.get('key') == 'dify_api_workflow_run':
+                dify_api_url = var.get('value')
+                logger.info(f"Found Dify workflow run URL: {dify_api_url}")
+            elif var.get('key') == 'dify_api_key':
+                dify_api_key = var.get('value')
+                logger.info(f"Found Dify API Key: {dify_api_key[:10]}...")
+    if not dify_api_url:
+        logger.error(f"No Dify workflow run URL found in config for project {project_id}. Config: {config}")
+        raise ValueError("Dify workflow run URL not configured for this project.")
+    if not dify_api_key:
+        logger.error(f"No Dify API Key found in config for project {project_id}")
+        raise ValueError("Dify API Key not configured for this project.")
+
+    # --- NEW: Map document_id to dify_document_id for document-type inputs ---
+    # processed_inputs = {}
+    # for key, value in inputs.items():
+    #     # If value is a list (as in [{{...}}]), take first element
+    #     v = value[0] if isinstance(value, list) and value else value
+    #     if isinstance(v, dict) and v.get('type') == 'document':
+    #         doc_id = v.get('upload_file_id')
+    #         if doc_id:
+    #             doc = get_document_detail(doc_id)
+    #             if not doc or not doc.get('upload_file_id'):
+    #                 raise ValueError(f"Document {doc_id} not found or missing upload_file_id")
+    #             v = v.copy()
+    #             v['upload_file_id'] = doc['upload_file_id']
+    #             processed_inputs[key] = [v]
+    #         else:
+    #             processed_inputs[key] = value
+    #     else:
+    #         processed_inputs[key] = value
+    # # -------------------------------------------------------------
+
+    payload = {
+        "inputs": inputs,
+        "response_mode": response_mode,
+        "user": user
+    }
+    headers = {
+        "Authorization": f"Bearer {dify_api_key}",
+        "Content-Type": "application/json"
+    }
+    execution_id = None
+    try:
+        logger.info(f"Calling Dify workflow run API: {dify_api_url} with payload: {payload}")
+        response = requests.post(dify_api_url, headers=headers, json=payload)
+        logger.info(f"Dify workflow run response status: {response.status_code}")
+        logger.info(f"Dify workflow run response: {response.text}")
+        response.raise_for_status()
+        response_json = response.json()
+        # Save execution record
+        status = response_json.get('data', {}).get('status', 'succeeded' if response_json.get('data') else 'unknown')
+        outputs = response_json.get('data', {}).get('outputs')
+        error = response_json.get('error') or None
+        total_steps = response_json.get('data', {}).get('total_steps')
+        total_tokens = response_json.get('data', {}).get('total_tokens')
+        execution = create_execution(
+            workflow_id=workflow_id,
+            project_id=project_id,
+            status=status,
+            inputs=inputs,
+            outputs=outputs,
+            error=error,
+            total_steps=total_steps,
+            total_tokens=total_tokens
+        )
+        execution_id = execution.get('id') if isinstance(execution, dict) else None
+        logger.info(f"Saved workflow execution record: {execution_id}")
+        
+        # --- NEW: Auto-save test scenarios from workflow output ---
+        if status == 'succeeded' and outputs and outputs.get('structured_output'):
+            try:
+                logger.info(f"Auto-saving test scenarios from workflow output for project {project_id}")
+                success = ScenarioService.save_scenarios_from_workflow(project_id, {"structured_output": outputs['structured_output']}, execution_id)
+                if success:
+                    logger.info(f"Successfully saved test scenarios from workflow output for project {project_id}")
+                else:
+                    logger.warning(f"Failed to save test scenarios from workflow output for project {project_id}")
+            except Exception as e:
+                logger.error(f"Error auto-saving test scenarios from workflow output: {str(e)}")
+                # Don't fail the workflow execution if scenario saving fails
+        # -------------------------------------------------------------
+        
+        return {"dify_response": response_json, "execution_id": execution_id}
+    except Exception as e:
+        logger.error(f"Error running Dify workflow: {str(e)}")
+        # Save failed execution
+        execution = create_execution(
+            workflow_id=workflow_id,
+            project_id=project_id,
+            status="failed",
+            inputs=inputs,
+            outputs=None,
+            error=str(e),
+            total_steps=None,
+            total_tokens=None
+        )
+        execution_id = execution.get('id') if isinstance(execution, dict) else None
+        raise 
+
+def get_workflow_execution_detail(execution_id):
+    """Get a workflow execution by its id."""
+    return database.get_workflow_execution(execution_id)
+
+def list_workflow_executions_by_project(project_id):
+    """Get all workflow executions for a project."""
+    return database.get_workflow_executions(project_id) 

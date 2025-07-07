@@ -11,6 +11,8 @@ def allowed_file(filename):
     return any(filename.lower().endswith(ext) for ext in ALLOWED_EXTENSIONS)
 
 def upload_document(project_id, file_storage, is_current=False, metadata=None, user=None):
+    from services.config import get_config
+    
     """Save uploaded file to Dify, then create DB entry with Dify document ID."""
     filename = file_storage.filename
     if not allowed_file(filename):
@@ -22,7 +24,7 @@ def upload_document(project_id, file_storage, is_current=False, metadata=None, u
     file_storage.save(filepath)
 
     # Get Dify API URL and key from workflow config
-    config = get_workflow_config(project_id)
+    config = get_config(project_id)
     logger.info(f"Retrieved workflow config for project {project_id}: {config}")
     dify_api_url = None
     dify_api_key = None

@@ -7,14 +7,14 @@ from utils.workflow_transformer import process_workflow_output
 
 class ScenarioService:
     @staticmethod
-    def save_scenarios(project_id, scenarios):
+    def save_scenarios(project_id, scenarios, execution_id):
         """Save scenarios for a project"""
-        logger.info(f"Saving scenarios for project_id: {project_id}")
+        logger.info(f"Saving scenarios for project_id: {project_id} and execution_id: {execution_id}")
         try:
             client = get_connection()
             db = client[MONGODB_DATABASE]
             # Delete existing scenarios for this project
-            db.scenarios.delete_many({'project_id': project_id})
+            # db.scenarios.delete_many({'project_id': project_id})
             # Insert new scenarios
             for scenario in scenarios:
                 scenario_doc = dict(scenario)
@@ -22,6 +22,8 @@ class ScenarioService:
                 scenario_doc['version'] = scenario.get('version', '1.0')
                 scenario_doc['created_at'] = scenario.get('created_at', datetime.utcnow())
                 scenario_doc['updated_at'] = datetime.utcnow()
+                scenario_doc['test_cases'] = scenario.get('test_cases', [])
+                scenario_doc['execution_id'] = execution_id
                 db.scenarios.insert_one(scenario_doc)
             return True
         except Exception as e:
@@ -29,7 +31,7 @@ class ScenarioService:
             return False
 
     @staticmethod
-    def save_scenarios_from_workflow(project_id, workflow_output):
+    def save_scenarios_from_workflow(project_id, workflow_output, execution_id):
         """Save scenarios from workflow output after transformation"""
         logger.info(f"Saving scenarios from workflow output for project_id: {project_id}")
         try:
@@ -46,7 +48,7 @@ class ScenarioService:
             
             # Save the transformed scenarios
             scenarios = transformed_data.get('scenarios', [])
-            return ScenarioService.save_scenarios(project_id, scenarios)
+            return ScenarioService.save_scenarios(project_id, scenarios, execution_id)
             
         except Exception as e:
             logger.error(f"Error saving scenarios from workflow: {e}")
@@ -60,10 +62,6 @@ class ScenarioService:
             client = get_connection()
             db = client[MONGODB_DATABASE]
             scenarios = list(db.scenarios.find({'project_id': project_id}, {'_id': 0}))
-            
-            # Add test cases to each scenario
-            for scenario in scenarios:
-                scenario['test_cases'] = TestCaseService.get_test_cases(project_id, scenario['id'])
             
             return scenarios
         except Exception as e:

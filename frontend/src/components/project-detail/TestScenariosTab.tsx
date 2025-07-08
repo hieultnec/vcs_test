@@ -50,7 +50,7 @@ interface TestScenariosTabProps {
 const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedScenarios, setExpandedScenarios] = useState<string[]>([]);
+  const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
   const [expandedTestCases, setExpandedTestCases] = useState<string[]>([]);
   const [expandedTestRuns, setExpandedTestRuns] = useState<string[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -194,11 +194,7 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
   };
 
   const toggleScenario = (scenarioId: string) => {
-    setExpandedScenarios(prev =>
-      prev.includes(scenarioId)
-        ? prev.filter(id => id !== scenarioId)
-        : [...prev, scenarioId]
-    );
+    setExpandedScenario(prev => (prev === scenarioId ? null : scenarioId));
   };
 
   const toggleTestCase = (testCaseId: string) => {
@@ -268,160 +264,107 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
   return (
     <TooltipProvider>
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Test Scenarios & Cases</CardTitle>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleCreateScenario} className="px-3 py-1">
-                <Plus className="w-4 h-4 mr-1" />
-                Add Scenario
+            <CardTitle className="text-base">Test Scenarios & Cases</CardTitle>
+            <div className="flex gap-1">
+              <Button size="sm" onClick={handleCreateScenario} className="px-2 py-0.5 h-7">
+                <Plus className="w-3 h-3 mr-1" />
+                Add
               </Button>
-              <Button size="sm" variant="outline" onClick={loadScenarios} className="px-3 py-1">
-                <RefreshCw className="w-4 h-4 mr-1" />
+              <Button size="sm" variant="outline" onClick={loadScenarios} className="px-2 py-0.5 h-7">
+                <RefreshCw className="w-3 h-3 mr-1" />
                 Refresh
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="space-y-3">
+          <div className="space-y-1 max-h-[60vh] overflow-y-auto">
             {scenarios.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-4 text-gray-500 text-xs">
                 <p>No scenarios found. Create your first test scenario to get started.</p>
               </div>
             ) : (
               scenarios.map((scenario) => (
                 <Collapsible
                   key={scenario.id}
-                  open={expandedScenarios.includes(scenario.id)}
+                  open={expandedScenario === scenario.id}
                   onOpenChange={() => toggleScenario(scenario.id)}
                 >
                   <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors border border-gray-200">
-                      <div className="flex items-center gap-3">
-                        {expandedScenarios.includes(scenario.id) ? (
-                          <ChevronDown className="w-4 h-4 text-gray-600" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-gray-600" />
-                        )}
-                        <div className="text-left">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium text-gray-900 text-sm">{scenario.name}</h4>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="p-1 h-6 w-6"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRunScenario(scenario.id, scenario.name);
-                                  }}
-                                >
-                                  <Play className="w-3 h-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">Run this scenario</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <p className="text-xs text-gray-600 mb-2">{scenario.description}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">Version: {scenario.version}</span>
-                            <span className="text-xs text-gray-400">•</span>
-                            <span className="text-xs text-gray-500">Updated: {new Date(scenario.updated_at).toLocaleDateString()}</span>
-                            <span className="text-xs text-gray-400">•</span>
-                            <span className="text-xs text-gray-500">{scenario.test_cases?.length || 0} test cases</span>
-                          </div>
-                        </div>
-                      </div>
+                    <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded hover:bg-gray-100 border border-gray-200">
                       <div className="flex items-center gap-2">
-                        <Badge className={`${getPriorityColor(scenario.priority)} text-xs px-2 py-0`} variant="outline">
+                        {expandedScenario === scenario.id ? (
+                          <ChevronDown className="w-3 h-3 text-gray-600" />
+                        ) : (
+                          <ChevronRight className="w-3 h-3 text-gray-600" />
+                        )}
+                        <span className="font-medium text-gray-900 text-sm">{scenario.name}</span>
+                        <Badge className={`${getPriorityColor(scenario.priority)} text-xs px-1 py-0`} variant="outline">
                           {scenario.priority}
                         </Badge>
+                        <span className="text-[11px] text-gray-400">{scenario.test_cases?.length || 0} cases</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="ghost" className="p-1 h-6 w-6" onClick={(e) => { e.stopPropagation(); handleRunScenario(scenario.id, scenario.name); }}>
+                              <Play className="w-3 h-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Run scenario</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Button size="sm" variant="ghost" className="p-1 h-6 w-6" onClick={(e) => { e.stopPropagation(); handleEditScenario(scenario); }}>
+                          <Edit3 className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="p-1 h-6 w-6" onClick={(e) => { e.stopPropagation(); handleAddTestCase(scenario.id); }}>
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="ghost" className="p-1 h-6 w-6 text-red-600 hover:text-red-700" onClick={e => e.stopPropagation()}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-base">Delete Scenario</AlertDialogTitle>
+                              <AlertDialogDescription className="text-xs">
+                                Are you sure you want to delete "{scenario.name}"? This cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="px-2 py-1 text-xs">Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteScenario(scenario.id)} className="bg-red-600 hover:bg-red-700 px-2 py-1 text-xs">
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </CollapsibleTrigger>
-                  
                   <CollapsibleContent>
-                    <div className="mt-2 ml-6 space-y-2">
-                      {/* Scenario Actions */}
-                      <div className="p-3 bg-white border border-gray-200 rounded-md">
-                        <div className="flex items-center justify-between mb-3">
-                          <h5 className="font-medium text-gray-900 text-sm">Scenario Actions</h5>
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddTestCase(scenario.id)}
-                            className="px-3 py-1"
-                          >
-                            <Plus className="w-4 h-4 mr-1" />
-                            Add Test Case
-                          </Button>
-                        </div>
-                        <div className="flex gap-2 flex-wrap">
-                          <Button variant="outline" size="sm" onClick={() => handleEditScenario(scenario)} className="px-3 py-1">
-                            <Edit3 className="w-4 h-4 mr-1" />
-                            Edit Scenario
-                          </Button>
-                          <Button variant="outline" size="sm" className="px-3 py-1">
-                            <History className="w-4 h-4 mr-1" />
-                            Version History
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 px-3 py-1">
-                                <Trash2 className="w-4 h-4 mr-1" />
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle className="text-lg">Delete Test Scenario</AlertDialogTitle>
-                                <AlertDialogDescription className="text-sm">
-                                  Are you sure you want to delete "{scenario.name}"? This action cannot be undone and will also delete all associated test cases.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="px-4 py-2">Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteScenario(scenario.id)} className="bg-red-600 hover:bg-red-700 px-4 py-2">
-                                  Delete Scenario
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </div>
-
-                      {/* Test Cases */}
-                      <div className="space-y-2">
-                        <h6 className="font-medium text-gray-900 text-sm px-3">Test Cases ({scenario.test_cases?.length || 0})</h6>
-                        {scenario.test_cases && scenario.test_cases.length > 0 ? (
-                          scenario.test_cases.map((testCase) => (
-                            <div key={testCase.id} className="p-3 bg-blue-50 rounded-md border border-blue-200">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h5 className="font-medium text-blue-900 text-sm">{testCase.title}</h5>
-                                  <p className="text-xs text-blue-600 mt-1">{testCase.description}</p>
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <Badge className={`${getStatusColor(testCase.status)} text-xs px-2 py-0`} variant="outline">
-                                      {testCase.status}
-                                    </Badge>
-                                    <span className="text-xs text-blue-600">Version: {testCase.version}</span>
-                                  </div>
-                                </div>
-                                <Button variant="ghost" size="sm" className="p-1 h-6 w-6">
-                                  <Play className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-4 text-gray-500 text-sm">
-                            No test cases yet. Add your first test case to this scenario.
+                    <div className="ml-4 mt-1 space-y-1">
+                      {scenario.test_cases && scenario.test_cases.length > 0 ? (
+                        scenario.test_cases.map((testCase) => (
+                          <div key={testCase.id} className="flex items-center justify-between px-3 py-2 bg-blue-50 rounded border border-blue-200">
+                            <span className="text-sm text-blue-900">{testCase.title}</span>
+                            <Badge className={`${getStatusColor(testCase.status)} text-xs px-1 py-0`} variant="outline">
+                              {testCase.status}
+                            </Badge>
+                            <span className="text-[11px] text-blue-600">v{testCase.version}</span>
+                            <Button variant="ghost" size="sm" className="p-1 h-6 w-6">
+                              <Play className="w-3 h-3" />
+                            </Button>
                           </div>
-                        )}
-                      </div>
+                        ))
+                      ) : (
+                        <div className="text-xs text-gray-500 py-1">No test cases yet.</div>
+                      )}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>

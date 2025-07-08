@@ -76,15 +76,19 @@ const WorkflowDetail: React.FC<WorkflowDetailProps> = ({ workflow, projectId, on
     setScenariosSaved(false);
     const inputs: Record<string, unknown> = {};
     workflow.inputs.forEach((input) => {
+      const value = data[input.name];
+      if (value == null || value === '') {
+        // Skip this input if value is null or empty
+        return;
+      }
       if (input.type === 'document') {
         inputs[input.name] = {
           transfer_method: 'local_file',
-          upload_file_id: data[input.name],
-          type: 'document',
-          url: ''
+          upload_file_id: value,
+          type: 'document'
         };
       } else {
-        inputs[input.name] = data[input.name];
+        inputs[input.name] = value;
       }
     });
     try {

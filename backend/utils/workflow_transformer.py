@@ -61,7 +61,8 @@ def transform_scenario(scenario: Dict[str, Any]) -> Dict[str, Any]:
         steps.append(f"Scenario: {scenario['scenario']}")
     
     return {
-        'id': scenario.get('scenario_id', str(uuid.uuid4())),
+        'id': str(uuid.uuid4()),
+        'scenario_id': scenario.get('scenscenario_idario_name', ''),
         'project_id': scenario.get('project_id'),
         'name': scenario.get('scenario_name', ''),
         'description': scenario.get('description', ''),
@@ -93,7 +94,8 @@ def transform_test_case(test_case: Dict[str, Any]) -> Dict[str, Any]:
         steps.append(f"Steps: {test_case['scenario']}")
     
     return {
-        'id': test_case.get('test_case_id', str(uuid.uuid4())),
+        'id': str(uuid.uuid4()),
+        'test_case_id': test_case.get('test_case_id', ''),
         'project_id': test_case.get('project_id'),
         'scenario_id': test_case.get('scenario_id'),
         'title': test_case.get('test_case_name', ''),

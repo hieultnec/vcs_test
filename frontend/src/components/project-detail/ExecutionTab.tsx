@@ -5,6 +5,17 @@ interface ExecutionTabProps {
   workflowId: string;
 }
 
+export function formatDateByLocale(dateString: string | number | Date | undefined, locale?: string) {
+  if (!dateString) return '-';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
+    return date.toLocaleString(locale || navigator.language);
+  } catch {
+    return '-';
+  }
+}
+
 const ExecutionTab: React.FC<ExecutionTabProps> = ({ workflowId }) => {
   const [executions, setExecutions] = useState<Record<string, unknown>[]>([]);
   const [selectedExecution, setSelectedExecution] = useState<Record<string, unknown> | null>(null);
@@ -53,8 +64,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ workflowId }) => {
                 <th className="px-3 py-2 border">Status</th>
                 <th className="px-3 py-2 border">Workflow ID</th>
                 <th className="px-3 py-2 border">Started</th>
-                <th className="px-3 py-2 border">Finished</th>
                 <th className="px-3 py-2 border">Error</th>
+                <th className="px-3 py-2 border">Token</th>
                 <th className="px-3 py-2 border">Action</th>
               </tr>
             </thead>
@@ -63,9 +74,14 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ workflowId }) => {
                 <tr key={String(exec.execution_id || exec['id'])}>
                   <td className="px-3 py-2 border font-medium">{renderCellValue(exec.status)}</td>
                   <td className="px-3 py-2 border">{renderCellValue(exec['workflow_id'])}</td>
-                  <td className="px-3 py-2 border">{exec.started_at ? new Date(String(exec.started_at)).toLocaleString() : exec['created_at'] ? new Date(String(exec['created_at'])).toLocaleString() : '-'}</td>
-                  <td className="px-3 py-2 border">{exec.completed_at ? new Date(String(exec.completed_at)).toLocaleString() : exec['finished_at'] ? new Date(String(exec['finished_at'])).toLocaleString() : '-'}</td>
+                  <td className="px-3 py-2 border">{
+                    formatDateByLocale(
+                      (exec.started_at as string | number | Date | undefined) ||
+                      (exec['created_at'] as string | number | Date | undefined)
+                    )
+                  }</td>
                   <td className="px-3 py-2 border text-red-600">{renderCellValue(exec.error_message || exec['error'])}</td>
+                  <td className="px-3 py-2 border">{renderCellValue(exec.total_tokens || exec['total_tokens'])}</td>
                   <td className="px-3 py-2 border">
                     <button
                       className="text-blue-600 hover:underline"

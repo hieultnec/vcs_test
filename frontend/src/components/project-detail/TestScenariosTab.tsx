@@ -50,7 +50,7 @@ interface TestScenariosTabProps {
 const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
+  const [expandedScenarios, setExpandedScenarios] = useState<string[]>([]);
   const [expandedTestCases, setExpandedTestCases] = useState<string[]>([]);
   const [expandedTestRuns, setExpandedTestRuns] = useState<string[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -193,8 +193,10 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
     }
   };
 
-  const toggleScenario = (scenarioId: string) => {
-    setExpandedScenario(prev => (prev === scenarioId ? null : scenarioId));
+  const toggleScenario = (id: string) => {
+    setExpandedScenarios((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
   };
 
   const toggleTestCase = (testCaseId: string) => {
@@ -280,7 +282,7 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="space-y-1 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-1 h-[400px] overflow-y-auto">
             {scenarios.length === 0 ? (
               <div className="text-center py-4 text-gray-500 text-xs">
                 <p>No scenarios found. Create your first test scenario to get started.</p>
@@ -289,13 +291,13 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
               scenarios.map((scenario) => (
                 <Collapsible
                   key={scenario.id}
-                  open={expandedScenario === scenario.id}
+                  open={expandedScenarios.includes(scenario.id)}
                   onOpenChange={() => toggleScenario(scenario.id)}
                 >
                   <CollapsibleTrigger className="w-full">
                     <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded hover:bg-gray-100 border border-gray-200">
                       <div className="flex items-center gap-2">
-                        {expandedScenario === scenario.id ? (
+                        {expandedScenarios.includes(scenario.id) ? (
                           <ChevronDown className="w-3 h-3 text-gray-600" />
                         ) : (
                           <ChevronRight className="w-3 h-3 text-gray-600" />

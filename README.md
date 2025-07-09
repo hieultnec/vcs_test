@@ -6,4 +6,4 @@ Docker
 	
 	
 UI
-	http://localhost:5173/# vcs_test
+	http://localhost:8080/ vcs_test

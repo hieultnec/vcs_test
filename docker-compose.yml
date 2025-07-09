@@ -29,20 +29,18 @@ services:
     volumes:
       - lagavue_mongodb_data:/data/db
 
-  # frontend:
-  #   build:
-  #     context: .
-  #     dockerfile: dockers/Dockerfile.frontend
-  #   depends_on:
-  #     - mongodb
-  #     - backend
-  #   ports:
-  #     - "5173:5173"
-  #   networks:
-  #     - atc_network
-  #   environment:
-  #     - VITE_BACKEND=http://localhost:5000
-
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../dockers/Dockerfile.frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:8080"
+    networks:
+      - atc_network
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5000
 
 networks:
   atc_network:

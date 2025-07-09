@@ -1,15 +1,12 @@
 FROM node:20
 
-RUN npm install -g npm@11.4.1
-
 WORKDIR /app
 
-COPY ../testflow-ui-forge/package*.json ./
+COPY package*.json ./
 RUN npm install
 
-COPY ../testflow-ui-forge .
+COPY . .
 
-# Mở cổng (nếu ứng dụng cần)
-EXPOSE 5173
+EXPOSE 8080
 
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["npm", "run", "dev", "--", "--host", "--port", "8080"]

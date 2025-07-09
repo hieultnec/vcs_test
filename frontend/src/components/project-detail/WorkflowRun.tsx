@@ -124,22 +124,6 @@ const WorkflowRun: React.FC<WorkflowRunProps> = ({
     <div className="flex flex-col md:flex-row gap-6 mt-8">
       {/* Left: Input Form */}
       <div className="flex-1 bg-white p-4 rounded shadow relative">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleSubmit(methods.getValues())}
-          disabled={localSubmitting}
-          aria-label="Refresh result"
-        >
-          {localSubmitting ? (
-            <span className="flex items-center">
-              <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-1"></span>
-              Refreshing...
-            </span>
-          ) : (
-            "Refresh"
-          )}
-        </Button>
         {workflow && (
           <FormProvider {...methods}>
             <form onSubmit={methods.handleSubmit(handleSubmit)}>

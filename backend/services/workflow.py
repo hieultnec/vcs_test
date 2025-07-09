@@ -70,6 +70,8 @@ def update_workflow(workflow_id, update_data):
     return database.update_workflow(workflow_id, update_data)
 
 def delete_workflow(workflow_id):
+    # Delete all scenarios related to this workflow
+    ScenarioService.delete_scenarios_by_workflow(workflow_id)
     return database.delete_workflow(workflow_id)
 
 def list_workflows(project_id=None):

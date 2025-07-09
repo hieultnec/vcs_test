@@ -119,3 +119,17 @@ class ScenarioService:
         except Exception as e:
             logger.error(f"Error deleting scenario: {e}")
             return False
+
+    @staticmethod
+    def delete_scenarios_by_workflow(workflow_id):
+        """Delete all scenarios related to a workflow_id."""
+        logger.info(f"Deleting scenarios for workflow_id: {workflow_id}")
+        try:
+            client = get_connection()
+            db = client[MONGODB_DATABASE]
+            result = db.scenarios.delete_many({'workflow_id': workflow_id})
+            logger.info(f"Deleted {result.deleted_count} scenarios for workflow_id: {workflow_id}")
+            return result.deleted_count
+        except Exception as e:
+            logger.error(f"Error deleting scenarios by workflow: {e}")
+            return 0

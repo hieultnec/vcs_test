@@ -15,7 +15,7 @@ interface UseDocumentsReturn {
   clearError: () => void;
 }
 
-export const useDocuments = (projectId: string): UseDocumentsReturn => {
+export const useDocuments = (workflowId: string): UseDocumentsReturn => {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -25,7 +25,7 @@ export const useDocuments = (projectId: string): UseDocumentsReturn => {
     try {
       setLoading(true);
       setError(null);
-      const docs = await documentService.getProjectDocuments(projectId);
+      const docs = await documentService.getWorkflowDocuments(workflowId);
       setDocuments(docs);
     } catch (err) {
       setError('Failed to load documents');
@@ -33,18 +33,17 @@ export const useDocuments = (projectId: string): UseDocumentsReturn => {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [workflowId]);
 
   const uploadDocument = useCallback(async (
     file: File, 
-    isCurrent: boolean = false, 
     metadata?: DocumentMetadata
   ) => {
     try {
       setUploading(true);
       setError(null);
       
-      await documentService.uploadDocument(projectId, file, isCurrent, {
+      await documentService.uploadDocument(workflowId, file, {
         size: file.size,
         type: file.type,
         lastModified: file.lastModified,
@@ -58,7 +57,7 @@ export const useDocuments = (projectId: string): UseDocumentsReturn => {
     } finally {
       setUploading(false);
     }
-  }, [projectId, loadDocuments]);
+  }, [workflowId, loadDocuments]);
 
   const deleteDocument = useCallback(async (documentId: string) => {
     try {
@@ -105,10 +104,10 @@ export const useDocuments = (projectId: string): UseDocumentsReturn => {
   }, []);
 
   useEffect(() => {
-    if (projectId) {
+    if (workflowId) {
       loadDocuments();
     }
-  }, [projectId, loadDocuments]);
+  }, [workflowId, loadDocuments]);
 
   return {
     documents,

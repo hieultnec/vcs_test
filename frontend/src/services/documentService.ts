@@ -18,38 +18,36 @@ export interface DocumentMetadata {
 
 export const documentService = {
   // Get documents for a project
-  async getProjectDocuments(projectId: string): Promise<ProjectDocument[]> {
+  async getWorkflowDocuments(workflowId: string): Promise<ProjectDocument[]> {
     try {
-      const response = await apiClient.get(`/api/project/document/list_by_project?project_id=${projectId}`);
+      const response = await apiClient.get(`/api/document/list_by_workflow?workflow_id=${workflowId}`);
       if (Array.isArray(response.data)) {
         return response.data;
       }
       return response.data.result || [];
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
-      console.error(`Failed to fetch documents for project ${projectId}:`, apiError);
+      console.error(`Failed to fetch documents for project ${workflowId}:`, apiError);
       throw new Error(ApiErrorHandler.getErrorMessage(apiError));
     }
   },
 
   // Upload a document to a project
   async uploadDocument(
-    projectId: string, 
+    workflowId: string, 
     file: File, 
-    isCurrent: boolean = false,
     metadata?: DocumentMetadata
   ): Promise<DocumentUploadResponse> {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('project_id', projectId);
-      formData.append('is_current', isCurrent.toString());
+      formData.append('workflow_id', workflowId);
       
       if (metadata) {
         formData.append('metadata', JSON.stringify(metadata));
       }
 
-      const response = await apiClient.post('/api/project/document/upload', formData, {
+      const response = await apiClient.post('/api/workflow/upload_document', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

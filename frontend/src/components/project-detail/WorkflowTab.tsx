@@ -49,9 +49,16 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { Search, Play, Pencil, Trash2, Plus } from "lucide-react";
-import WorkflowDetail from "./WorkflowDetail";
-import DynamicInputsEditor from "./DynamicInputsEditor";
+import { Search, Play, Pencil, Trash2, Plus, RefreshCw } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import ExecutionTab from "./ExecutionTab";
+import TestScenariosTab from "./TestScenariosTab";
+import DocumentManager from "@/components/DocumentManager";
+import {
+  Dialog as Modal,
+  DialogContent as ModalContent,
+} from "@/components/ui/dialog";
+import WorkflowRun from "./WorkflowRun";
 
 interface WorkflowInputField {
   name: string;
@@ -60,16 +67,19 @@ interface WorkflowInputField {
   required?: boolean;
   default?: string;
   options?: string[];
+  description?: string;
 }
 
 interface Workflow {
   workflow_id: string;
   name: string;
-  description: string;
   inputs: WorkflowInputField[];
+  description?: string;
   dify_workflow_run_id?: string;
   created_at?: string;
   updated_at?: string;
+  api_key?: string;
+  info?: Record<string, unknown>;
 }
 
 // Only one Execution interface, all fields optional
@@ -91,18 +101,18 @@ interface WorkflowTabProps {
 // Local type for card rendering to ensure created_at/updated_at are present
 type WorkflowCard = Workflow & { created_at?: string; updated_at?: string };
 
+// Define a type for the workflow creation form
+interface CreateWorkflowForm {
+  api_key: string;
+}
+
 const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
-  const {
-    workflows,
-    selectedWorkflowId,
-    selectedWorkflow: workflow,
-    loading,
-    error,
-  } = useAppSelector((state) => state.workflows);
+  const { workflows, loading, error } = useAppSelector(
+    (state) => state.workflows
+  );
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
-  const [executions, setExecutions] = useState<Execution[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -110,24 +120,21 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
   const [editForm, setEditForm] = useState<Partial<Workflow> | null>(null);
   const [crudLoading, setCrudLoading] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
-  const [showDetail, setShowDetail] = useState(false);
-  const [detailWorkflow, setDetailWorkflow] = useState<Workflow | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeWorkflowId, setActiveWorkflowId] = useState<string | null>(null);
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(
     null
   );
+  const [tab, setTab] = useState("run");
+  const [workflow, setWorkflow] = useState<Workflow | null>(null);
+  const [showDocumentManager, setShowDocumentManager] = useState(false);
+  const [refreshingDocuments, setRefreshingDocuments] = useState(false);
 
   // react-hook-form for workflow run
   const methods = useForm<Record<string, string>>();
   // react-hook-form for create/edit
-  const createMethods = useForm<Partial<Workflow>>({
-    defaultValues: {
-      name: "",
-      description: "",
-      inputs: [],
-      dify_workflow_run_id: "",
-    },
+  const createMethods = useForm<CreateWorkflowForm>({
+    defaultValues: { api_key: "" },
   });
   const editMethods = useForm<Partial<Workflow>>({
     defaultValues: editForm || {
@@ -142,18 +149,10 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
   useEffect(() => {
     dispatch(fetchWorkflows(projectId));
     documentService
-      .getProjectDocuments(projectId)
+      .getWorkflowDocuments(activeWorkflowId)
       .then((docs) => setDocuments(docs || []))
       .catch(() => setDocuments([]));
-    if (workflow && workflow.workflow_id) {
-      workflowService
-        .getExecutionHistory(workflow.workflow_id)
-        .then((execRes) => setExecutions(execRes || []))
-        .catch(() => setExecutions([]));
-    } else {
-      setExecutions([]);
-    }
-  }, [projectId, dispatch, workflow?.workflow_id]);
+  }, [projectId, dispatch, activeWorkflowId]);
 
   // Update edit form when workflow changes
   useEffect(() => {
@@ -163,75 +162,31 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
     // eslint-disable-next-line
   }, [workflow, showEditModal]);
 
-  // Workflow run submit
-  const handleSubmit = async (data: Record<string, string>) => {
-    if (!workflow) return;
-    setSubmitting(true);
-    setResult(null);
-    // Prepare inputs for backend
-    const inputs: Record<string, unknown> = {};
-    workflow.inputs.forEach((input) => {
-      if (input.type === "document") {
-        inputs[input.name] = [
-          {
-            transfer_method: "local_file",
-            upload_file_id: data[input.name],
-            type: "document",
-          },
-        ];
-      } else {
-        inputs[input.name] = data[input.name];
-      }
-    });
-    try {
-      const res = await fetch("/api/workflow/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workflow_id: workflow.workflow_id, inputs }),
-      });
-      const resData = await res.json();
-      setResult(resData);
-      toast({
-        title: "Workflow executed",
-        description: "Workflow run completed.",
-      });
-      // Refresh executions after run
-      workflowService
-        .getExecutionHistory(workflow.workflow_id)
-        .then((execRes) => setExecutions(execRes || []));
-    } catch (e) {
-      toast({
-        title: "Workflow execution failed",
-        description: String(e),
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
+  // Add useEffect to fetch and set the selected workflow when activeWorkflowId changes
+  useEffect(() => {
+    if (activeWorkflowId) {
+      const selected = workflows.find(
+        (wf) => wf.workflow_id === activeWorkflowId
+      );
+      setWorkflow(selected ? JSON.parse(JSON.stringify(selected)) : null);
     }
-  };
+  }, [activeWorkflowId, workflows]);
 
   // CREATE WORKFLOW
-  const handleCreateWorkflow = async (data: Partial<Workflow>) => {
+  const handleCreateWorkflow = async (data: CreateWorkflowForm) => {
     setCrudLoading(true);
     try {
       await dispatch(
-        createWorkflowThunk({
-          project_id: projectId,
-          name: data.name!,
-          description: data.description,
-          dify_workflow_run_id: data.dify_workflow_run_id || "",
-          inputs: data.inputs || [],
-        })
+        createWorkflowThunk({ project_id: projectId, api_key: data.api_key })
       ).unwrap();
       setShowCreateModal(false);
-      createMethods.reset();
       toast({
         title: "Workflow created",
-        description: "Workflow created successfully.",
+        description: "The workflow was created successfully.",
       });
-    } catch (e) {
+    } catch (e: unknown) {
       toast({
-        title: "Create failed",
+        title: "Create workflow failed",
         description: String(e),
         variant: "destructive",
       });
@@ -240,12 +195,6 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
     }
   };
 
-  // EDIT WORKFLOW
-  const openEditModal = (wf?: Workflow) => {
-    if (!wf) return;
-    setEditForm({ ...wf });
-    setShowEditModal(true);
-  };
   const handleEditWorkflow = async (data: Partial<Workflow>) => {
     if (!editForm || !editForm.workflow_id) return;
     setCrudLoading(true);
@@ -312,6 +261,28 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
       (wf.description || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleRefreshDocuments = async () => {
+    if (!activeWorkflowId) return;
+    setRefreshingDocuments(true);
+    try {
+      const docs = await documentService.getWorkflowDocuments(activeWorkflowId);
+      setDocuments(docs || []);
+      toast({
+        title: "Documents refreshed",
+        description: "The document list has been updated.",
+      });
+    } catch (e) {
+      setDocuments([]);
+      toast({
+        title: "Failed to refresh documents",
+        description: String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingDocuments(false);
+    }
+  };
+
   // Card grid UI
   return (
     <div className="space-y-6">
@@ -350,17 +321,18 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredWorkflows.map((wf) => {
-            const workflow = wf as WorkflowCard;
-            return (
+        <>
+          {/* Horizontal list of workflow cards */}
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {filteredWorkflows.map((workflow) => (
               <Card
                 key={workflow.workflow_id}
-                className={`group relative border-gray-200 hover:border-blue-200 transition-all duration-200 cursor-pointer ${
+                className={`min-w-[260px] group relative border-gray-200 hover:border-blue-200 transition-all duration-200 cursor-pointer ${
                   activeWorkflowId === workflow.workflow_id
                     ? "ring-2 ring-blue-400"
                     : ""
                 }`}
+                onClick={() => setActiveWorkflowId(workflow.workflow_id)}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -378,52 +350,6 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
                         variant="ghost"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveWorkflowId(workflow.workflow_id);
-                        }}
-                        title="Run"
-                      >
-                        <Play className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDetailWorkflow(workflow);
-                          setShowDetail(true);
-                        }}
-                        title="Details"
-                      >
-                        <span className="sr-only">Details</span>
-                        <svg
-                          width="18"
-                          height="18"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          />
-                          <circle cx="12" cy="16" r="1" fill="currentColor" />
-                          <rect
-                            x="11"
-                            y="8"
-                            width="2"
-                            height="5"
-                            rx="1"
-                            fill="currentColor"
-                          />
-                        </svg>
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
                           setWorkflowToDelete(workflow);
                           setShowDeleteConfirm(true);
                         }}
@@ -434,224 +360,91 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
                     </div>
                   </div>
                   <div className="text-xs text-gray-400 mt-2">
-                    Dify Run ID: {workflow.dify_workflow_run_id}
+                    Created: {workflow?.created_at ? new Date(workflow.created_at).toLocaleString() : "-"}
                   </div>
                   <div className="text-xs text-gray-400">
-                    Created:{" "}
-                    {workflow.created_at
-                      ? new Date(workflow.created_at).toLocaleString()
-                      : "-"}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    Updated:{" "}
-                    {workflow.updated_at
-                      ? new Date(workflow.updated_at).toLocaleString()
-                      : "-"}
+                    Updated: {workflow?.updated_at ? new Date(workflow.updated_at).toLocaleString() : "-"}
                   </div>
                 </CardHeader>
               </Card>
-            );
-          })}
-        </div>
-      )}
-      {/* Workflow Run Form */}
-      {activeWorkflowId && workflow && (
-        <FormProvider {...methods}>
-          <form
-            onSubmit={methods.handleSubmit(handleSubmit)}
-            className="space-y-4 bg-white p-4 rounded shadow max-w-xl mt-8 mx-auto"
-          >
-            <div className="mb-2">
-              <div className="text-lg font-semibold">{workflow.name}</div>
-              <div className="text-gray-500 text-sm">
-                {workflow.description}
-              </div>
-            </div>
-            {workflow.inputs && workflow.inputs.length > 0 ? (
-              workflow.inputs.map((input) => {
-                if (input.type === "document") {
-                  return (
-                    <div key={input.name}>
-                      <Label className="block font-medium mb-1">
-                        {input.label}
-                      </Label>
-                      <Select
-                        value={methods.watch(input.name) || ""}
-                        onValueChange={(val) =>
-                          methods.setValue(input.name, val)
-                        }
-                        required={input.required}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select document" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {documents
-                            .filter(
-                              (doc) => doc.dify_document_id || doc.document_id
-                            )
-                            .map((doc) => (
-                              <SelectItem
-                                key={doc.dify_document_id || doc.document_id}
-                                value={doc.dify_document_id || doc.document_id}
-                              >
-                                {doc.filename}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  );
-                }
-                if (input.type === "textarea") {
-                  return (
-                    <div key={input.name}>
-                      <Label className="block font-medium mb-1">
-                        {input.label}
-                      </Label>
-                      <Textarea
-                        value={methods.watch(input.name) || ""}
-                        onChange={(e) =>
-                          methods.setValue(input.name, e.target.value)
-                        }
-                        required={input.required}
-                        placeholder={input.default || ""}
-                        className="w-full min-h-[80px]"
-                      />
-                    </div>
-                  );
-                }
-                if (input.type === "select") {
-                  return (
-                    <div key={input.name}>
-                      <Label className="block font-medium mb-1">
-                        {input.label}
-                      </Label>
-                      <Select
-                        value={methods.watch(input.name) || input.default || ""}
-                        onValueChange={(val) =>
-                          methods.setValue(input.name, val)
-                        }
-                        required={input.required}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={input.default || "Select option"}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {input.options?.map((opt: string) => (
-                            <SelectItem key={opt} value={opt}>
-                              {opt}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  );
-                }
-                // Default to text input
-                return (
-                  <div key={input.name}>
-                    <Label className="block font-medium mb-1">
-                      {input.label}
-                    </Label>
-                    <Input
-                      type="text"
-                      value={methods.watch(input.name) || ""}
-                      onChange={(e) =>
-                        methods.setValue(input.name, e.target.value)
-                      }
-                      required={input.required}
-                      placeholder={input.default || ""}
-                    />
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-gray-500">
-                No input fields defined for this workflow.
-              </div>
-            )}
-            <Button type="submit" disabled={submitting} className="w-full">
-              {submitting ? "Running..." : "Run Workflow"}
-            </Button>
-          </form>
-        </FormProvider>
-      )}
-      {result && (
-        <div className="mt-6 bg-gray-50 p-4 rounded shadow max-w-xl mx-auto">
-          <h4 className="font-semibold mb-2">Workflow Result</h4>
-          <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        </div>
-      )}
-      {/* Execution History */}
-      {activeWorkflowId && !loading && executions.length > 0 && (
-        <div className="mt-8 max-w-2xl mx-auto">
-          <h4 className="font-semibold mb-2">Execution History</h4>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Status</TableHead>
-                <TableHead>Started</TableHead>
-                <TableHead>Finished</TableHead>
-                <TableHead>Result/Error</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {executions.map((exec) => (
-                <TableRow key={exec.execution_id}>
-                  <TableCell className="font-medium">{exec.status}</TableCell>
-                  <TableCell>
-                    {exec.started_at
-                      ? new Date(exec.started_at).toLocaleString()
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {exec.completed_at
-                      ? new Date(exec.completed_at).toLocaleString()
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {exec.result ? (
-                      <span className="text-green-700">
-                        {JSON.stringify(exec.result)}
-                      </span>
-                    ) : exec.error_message ? (
-                      <span className="text-red-600">{exec.error_message}</span>
+            ))}
+          </div>
+          {/* Nested tabs for selected workflow */}
+          {activeWorkflowId && (
+            <Tabs value={tab} onValueChange={setTab} className="mt-6">
+              <TabsList className="flex h-fit w-full items-center justify-start rounded-md bg-muted p-1 text-muted-foreground mb-4 overflow-x-auto">
+                <TabsTrigger
+                  value="run"
+                  className="w-1/4 text-sm px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow hover:bg-gray-200"
+                >
+                  Run
+                </TabsTrigger>
+                <TabsTrigger
+                  value="documents"
+                  className="w-1/4 text-sm px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow hover:bg-gray-200"
+                >
+                  Documents
+                </TabsTrigger>
+                <TabsTrigger
+                  value="executions"
+                  className="w-1/4 text-sm px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow hover:bg-gray-200"
+                >
+                  Executions
+                </TabsTrigger>
+                <TabsTrigger
+                  value="scenarios"
+                  className="w-1/4 text-sm px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow hover:bg-gray-200"
+                >
+                  Scenarios
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="run">
+                <WorkflowRun
+                  workflow={workflow}
+                  documents={documents}
+                  submitting={submitting}
+                  result={result}
+                  methods={methods}
+                  showDocumentManager={showDocumentManager}
+                  setShowDocumentManager={setShowDocumentManager}
+                  activeWorkflowId={activeWorkflowId}
+                  setResult={setResult}
+                  projectId={projectId}
+                  refreshDocuments={handleRefreshDocuments}
+                  refreshingDocuments={refreshingDocuments}
+                />
+              </TabsContent>
+              <TabsContent value="documents">
+                <div className="flex justify-end mb-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRefreshDocuments}
+                    disabled={!activeWorkflowId || refreshingDocuments}
+                    className="flex items-center gap-2"
+                    title="Refresh Documents"
+                  >
+                    {refreshingDocuments ? (
+                      <span className="animate-spin"><RefreshCw className="w-4 h-4" /></span>
                     ) : (
-                      "-"
+                      <RefreshCw className="w-4 h-4" />
                     )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                    Refresh
+                  </Button>
+                </div>
+                <DocumentManager workflowId={activeWorkflowId} />
+              </TabsContent>
+              <TabsContent value="executions">
+                <ExecutionTab workflowId={activeWorkflowId} />
+              </TabsContent>
+              <TabsContent value="scenarios">
+                <TestScenariosTab projectId={projectId} />
+              </TabsContent>
+            </Tabs>
+          )}
+        </>
       )}
-      {/* Workflow Detail Fullscreen Modal */}
-      {showDetail && detailWorkflow && (
-        <Dialog
-          open={showDetail}
-          onOpenChange={(open) => {
-            setShowDetail(open);
-            if (!open) setDetailWorkflow(null);
-          }}
-        >
-          <DialogContent className="fixed p-0 m-0 bg-white z-50 flex flex-col">
-            <WorkflowDetail
-              workflow={detailWorkflow}
-              projectId={projectId}
-              onClose={() => {
-                setShowDetail(false);
-                setDetailWorkflow(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+
       {/* CREATE MODAL */}
       <Dialog
         open={showCreateModal}
@@ -660,76 +453,40 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
           if (!open) setWorkflowToDelete(null);
         }}
       >
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader className="pb-2">
-            <DialogTitle className="text-lg">Create Workflow</DialogTitle>
-            <DialogDescription className="text-sm">
-              Define a new workflow for this project. Name and Dify Workflow Run
-              ID are required. Add dynamic input fields below.
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Workflow</DialogTitle>
+            <DialogDescription>
+              Enter the Dify API Key to create a new workflow for this project.
             </DialogDescription>
           </DialogHeader>
           <FormProvider {...createMethods}>
-            <form
-              onSubmit={createMethods.handleSubmit(handleCreateWorkflow)}
-              className="space-y-4"
-            >
-              <div className="space-y-2">
-                <Label htmlFor="wf-name" className="text-sm">
-                  Workflow Name
-                </Label>
-                <Input
-                  id="wf-name"
-                  placeholder="e.g., Data Extraction Workflow"
-                  className="text-sm"
-                  {...createMethods.register("name", { required: true })}
+            <form onSubmit={createMethods.handleSubmit(handleCreateWorkflow)}>
+              <div className="mb-4">
+                <label
+                  htmlFor="api_key"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Dify API Key
+                </label>
+                <input
+                  id="api_key"
+                  type="text"
+                  {...createMethods.register("api_key", { required: true })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                  placeholder="Enter Dify API Key"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="wf-desc" className="text-sm">
-                  Description
-                </Label>
-                <Textarea
-                  id="wf-desc"
-                  placeholder="Describe what this workflow does..."
-                  rows={3}
-                  className="text-sm resize-none"
-                  {...createMethods.register("description")}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="wf-dify-id" className="text-sm">
-                  Dify Workflow Run ID
-                </Label>
-                <Input
-                  id="wf-dify-id"
-                  placeholder="Required. e.g., 123e4567-e89b-12d3-a456-426614174000"
-                  className="text-sm"
-                  {...createMethods.register("dify_workflow_run_id", {
-                    required: true,
-                  })}
-                />
-              </div>
-              {/* Dynamic Inputs Section */}
-              <DynamicInputsEditor
-                inputs={createMethods.watch("inputs") || []}
-                setInputs={(inputs) => createMethods.setValue("inputs", inputs)}
-              />
               <DialogFooter className="pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2"
-                  disabled={crudLoading}
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  className="px-4 py-2"
-                  disabled={crudLoading}
-                >
-                  {crudLoading ? "Creating..." : "Create Workflow"}
+                <Button type="submit" className="btn btn-primary">
+                  Create Workflow
                 </Button>
               </DialogFooter>
             </form>
@@ -738,12 +495,11 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
       </Dialog>
       {/* EDIT MODAL */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader className="pb-2">
-            <DialogTitle className="text-lg">Edit Workflow</DialogTitle>
+            <DialogTitle className="text-lg">Edit Workflow API Key</DialogTitle>
             <DialogDescription className="text-sm">
-              Update the workflow details below. Name and Dify Workflow Run ID
-              are required. Edit dynamic input fields below.
+              Update the Dify API Key for this workflow.
             </DialogDescription>
           </DialogHeader>
           <FormProvider {...editMethods}>
@@ -752,46 +508,16 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
               className="space-y-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="edit-wf-name" className="text-sm">
-                  Workflow Name
+                <Label htmlFor="edit-wf-api-key" className="text-sm">
+                  Dify API Key
                 </Label>
                 <Input
-                  id="edit-wf-name"
-                  placeholder="e.g., Data Extraction Workflow"
+                  id="edit-wf-api-key"
+                  placeholder="e.g., app-xxxxxxxxxxxxxxxx"
                   className="text-sm"
-                  {...editMethods.register("name", { required: true })}
+                  {...editMethods.register("api_key", { required: true })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-wf-desc" className="text-sm">
-                  Description
-                </Label>
-                <Textarea
-                  id="edit-wf-desc"
-                  placeholder="Describe what this workflow does..."
-                  rows={3}
-                  className="text-sm resize-none"
-                  {...editMethods.register("description")}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-wf-dify-id" className="text-sm">
-                  Dify Workflow Run ID
-                </Label>
-                <Input
-                  id="edit-wf-dify-id"
-                  placeholder="Required. e.g., 123e4567-e89b-12d3-a456-426614174000"
-                  className="text-sm"
-                  {...editMethods.register("dify_workflow_run_id", {
-                    required: true,
-                  })}
-                />
-              </div>
-              {/* Dynamic Inputs Section */}
-              <DynamicInputsEditor
-                inputs={editMethods.watch("inputs") || []}
-                setInputs={(inputs) => editMethods.setValue("inputs", inputs)}
-              />
               <DialogFooter className="pt-4">
                 <Button
                   type="button"

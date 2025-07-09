@@ -1,21 +1,15 @@
-swagger: '2.0'
+swagger: "2.0"
 info:
   title: Auto Test Case API
-  version: '1.0'
+  version: "1.0"
   description: API for managing test projects, scenarios, test cases, and test runs
 tags:
   - name: Project
     description: Project management endpoints
   - name: Document
     description: Document management endpoints
-  - name: Task
-    description: Task management endpoints
   - name: Scenario
     description: Test scenario management endpoints
-  - name: TestCase
-    description: Test case management endpoints
-  - name: TestRun
-    description: Test run history management endpoints
   - name: Workflow
     description: Workflow management endpoints
 
@@ -26,7 +20,7 @@ paths:
       tags: [Project]
       operationId: controllers.ping.ping
       responses:
-        '200':
+        "200":
           description: Successful operation
           schema:
             type: object
@@ -35,130 +29,21 @@ paths:
                 type: integer
               message:
                 type: string
-
-  /api/projects:
-    get:
-      summary: Get all projects
-      tags: [Project]
-      produces:
-        - application/json
-      operationId: controllers.project.list
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: array
-                items:
-                  $ref: '#/definitions/Project'
 
   /api/project/create:
     post:
-      summary: Create a new project with document upload
+      summary: Create a new project
       tags: [Project]
-      consumes:
-        - multipart/form-data
-        - application/json
-      parameters:
-        - name: name
-          in: formData
-          required: true
-          type: string
-          description: Project name
-        - name: description
-          in: formData
-          required: false
-          type: string
-          description: Project description
-        - name: owner
-          in: formData
-          required: false
-          type: string
-          description: Project owner
-        - name: is_current
-          in: formData
-          required: false
-          type: boolean
-          description: Mark the first uploaded document as current
-        - name: file
-          in: formData
-          required: false
-          type: file
-          description: Project document(s) (optional, upload after project creation)
-          collectionFormat: multi
       operationId: controllers.project.create
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/Project'
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error
-
-  /api/project/get:
-    get:
-      summary: Get project by ID (includes test scenarios and tasks)
-      tags: [Project]
-      produces:
-        - application/json
-      parameters:
-        - name: id
-          in: query
-          required: true
-          type: string
-          description: The ID of the project to retrieve
-      operationId: controllers.project.get
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/ProjectDetail'
-        '400':
-          description: Bad request - missing project ID
-        '404':
-          description: Project not found
-        '500':
-          description: Internal server error
-
-  /api/project/update:
-    put:
-      summary: Update project information by ID
-      tags: [Project]
       consumes:
         - application/json
       parameters:
-        - name: id
-          in: query
-          required: true
-          type: string
-          description: The ID of the project to update
-        - name: body
-          in: body
+        - in: body
+          name: body
           required: true
           schema:
             type: object
+            required: [name]
             properties:
               name:
                 type: string
@@ -166,11 +51,15 @@ paths:
                 type: string
               owner:
                 type: string
-              status:
-                type: string
-      operationId: controllers.project.update
+              is_current:
+                type: boolean
+              dify_api_keys:
+                type: array
+                items:
+                  type: string
+                description: List of Dify API keys. Accepts an array of strings or a comma-separated string.
       responses:
-        '200':
+        "200":
           description: Successful operation
           schema:
             type: object
@@ -180,511 +69,86 @@ paths:
               message:
                 type: string
               result:
-                $ref: '#/definitions/Project'
-        '400':
-          description: Bad request - missing project ID or request body
-        '404':
+                $ref: "#/definitions/Project"
+        "400":
+          description: Bad request - missing required fields
+        "500":
+          description: Internal server error
+
+  /api/projects:
+    get:
+      summary: List all projects (alternate endpoint)
+      tags: [Project]
+      operationId: controllers.project.list_all
+      responses:
+        "200":
+          description: Success
+        "500":
+          description: Internal server error
+
+  /api/project/get:
+    get:
+      summary: Get project details
+      tags: [Project]
+      operationId: controllers.project.get
+      parameters:
+        - name: id
+          in: query
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+        "400":
+          description: Missing project ID
+        "404":
           description: Project not found
-        '500':
+        "500":
+          description: Internal server error
+
+  /api/project/update:
+    put:
+      summary: Update project details
+      tags: [Project]
+      operationId: controllers.project.update
+      parameters:
+        - name: id
+          in: query
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+      responses:
+        "200":
+          description: Success
+        "400":
+          description: Missing project ID or body
+        "404":
+          description: Project not found
+        "500":
           description: Internal server error
 
   /api/project/delete:
     delete:
-      summary: Delete project by ID
+      summary: Delete a project
       tags: [Project]
-      produces:
-        - application/json
-      parameters:
-        - name: id
-          in: query
-          required: true
-          type: string
-          description: The ID of the project to delete
       operationId: controllers.project.delete
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '400':
-          description: Bad request - missing project ID
-        '404':
-          description: Project not found
-        '500':
-          description: Internal server error
-
-  /api/project/document/upload:
-    post:
-      summary: Upload document for a project (uploads to Dify and stores locally)
-      tags: [Document]
-      consumes:
-        - multipart/form-data
-      parameters:
-        - name: project_id
-          in: formData
-          required: true
-          type: string
-          description: Project ID
-        - name: file
-          in: formData
-          required: true
-          type: file
-          description: Document file to upload
-        - name: is_current
-          in: formData
-          required: false
-          type: boolean
-          description: Mark document as current
-        - name: user
-          in: formData
-          required: false
-          type: string
-          description: User identifier for Dify upload
-      operationId: controllers.document.upload_document
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/Document'
-        '400':
-          description: Bad request - missing file or project_id, or Dify API URL not configured
-        '500':
-          description: Internal server error or Dify upload failed
-
-  /api/project/document/list:
-    get:
-      summary: List documents for a project
-      tags: [Document]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-      operationId: controllers.document.get_documents
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: array
-                items:
-                  $ref: '#/definitions/Document'
-        '400':
-          description: Bad request - missing project_id
-        '500':
-          description: Internal server error
-
-  /api/project/document/delete:
-    delete:
-      summary: Delete document by ID
-      tags: [Document]
-      produces:
-        - application/json
-      parameters:
-        - name: document_id
-          in: query
-          required: true
-          type: string
-          description: Document ID to delete
-      operationId: controllers.document.delete_document
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-        '400':
-          description: Bad request - missing document_id
-        '404':
-          description: Document not found
-        '500':
-          description: Internal server error
-
-  /api/project/document/list_by_project:
-    get:
-      summary: List all documents for a project
-      tags: [Document]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-      operationId: controllers.document.get_documents_by_project
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: array
-                items:
-                  $ref: '#/definitions/Document'
-        '400':
-          description: Bad request - missing project_id
-        '500':
-          description: Internal server error
-
-  /api/project/document/detail:
-    get:
-      summary: Get document details by ID
-      tags: [Document]
-      produces:
-        - application/json
-      parameters:
-        - name: document_id
-          in: query
-          required: true
-          type: string
-          description: Document ID
-      operationId: controllers.document.get_document_detail
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/Document'
-        '400':
-          description: Bad request - missing document_id
-        '404':
-          description: Document not found
-        '500':
-          description: Internal server error
-
-  /api/project/document/download:
-    get:
-      summary: Download a document by ID
-      tags: [Document]
-      produces:
-        - application/octet-stream
-      parameters:
-        - name: document_id
-          in: query
-          required: true
-          type: string
-          description: Document ID to download
-      operationId: controllers.document.download_document
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: file
-        '400':
-          description: Bad request - missing document_id
-        '404':
-          description: Document not found
-        '500':
-          description: Internal server error
-
-  /api/task/create:
-    post:
-      summary: Create a new task
-      tags: [Task]
-      consumes:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            type: object
-            required:
-              - project_id
-              - task_name
-              - url
-              - context
-            properties:
-              project_id:
-                type: string
-                description: Project ID
-              task_name:
-                type: string
-                description: Task name
-              url:
-                type: string
-                description: Target URL for the task
-              context:
-                type: string
-                description: Task context/description
-      operationId: controllers.task.create
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/Task'
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error
-
-  /api/task/get:
-    get:
-      summary: Get tasks for a project
-      tags: [Task]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-      operationId: controllers.task.get
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: array
-                items:
-                  $ref: '#/definitions/Task'
-        '400':
-          description: Bad request - missing project_id
-        '500':
-          description: Internal server error
-
-  /api/task/update:
-    put:
-      summary: Update a task
-      tags: [Task]
-      consumes:
-        - application/json
       parameters:
         - name: id
           in: query
           required: true
           type: string
-          description: Task ID
-        - name: body
-          in: body
-          required: true
-          schema:
-            type: object
-            properties:
-              task_name:
-                type: string
-              url:
-                type: string
-              context:
-                type: string
-              status:
-                type: string
-      operationId: controllers.task.update
       responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/Task'
-        '400':
-          description: Bad request - missing task ID or request body
-        '404':
-          description: Task not found
-        '500':
-          description: Internal server error
-
-  /api/task/delete:
-    delete:
-      summary: Delete a task
-      tags: [Task]
-      produces:
-        - application/json
-      parameters:
-        - name: task_id
-          in: query
-          required: true
-          type: string
-          description: Task ID
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-      operationId: controllers.task.delete
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '400':
-          description: Bad request - missing task_id or project_id
-        '404':
-          description: Task not found
-        '500':
-          description: Internal server error
-
-  /api/task/execute:
-    post:
-      summary: Execute a task
-      tags: [Task]
-      consumes:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            type: object
-            required:
-              - project_id
-              - task_id
-            properties:
-              project_id:
-                type: string
-                description: Project ID
-              task_id:
-                type: string
-                description: Task ID to execute
-      operationId: controllers.task.ex_task
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: object
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error
-
-  /api/task/screenshots:
-    get:
-      summary: Get list of screenshots for a task
-      tags: [Task]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-        - name: task_id
-          in: query
-          required: true
-          type: string
-          description: Task ID
-      operationId: controllers.task.get_screenshots
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: array
-                items:
-                  type: string
-        '400':
-          description: Bad request - missing project_id or task_id
-        '500':
-          description: Internal server error
-
-  /api/task/screenshot:
-    get:
-      summary: Get a specific screenshot file
-      tags: [Task]
-      produces:
-        - image/png
-      parameters:
-        - name: path
-          in: query
-          required: true
-          type: string
-          description: Path to screenshot file
-      operationId: controllers.task.get_screenshot
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: file
-        '400':
-          description: Bad request - missing path
-        '404':
-          description: Screenshot not found
-        '500':
+        "200":
+          description: Success
+        "400":
+          description: Missing project ID
+        "404":
+          description: Project not found
+        "500":
           description: Internal server error
 
   /api/scenario/save:
@@ -709,10 +173,10 @@ paths:
               scenarios:
                 type: array
                 items:
-                  $ref: '#/definitions/Scenario'
+                  $ref: "#/definitions/Scenario"
       operationId: controllers.scenario.save_scenarios
       responses:
-        '200':
+        "200":
           description: Successful operation
           schema:
             type: object
@@ -721,9 +185,9 @@ paths:
                 type: integer
               message:
                 type: string
-        '400':
+        "400":
           description: Bad request - missing required fields
-        '500':
+        "500":
           description: Internal server error
 
   /api/scenario/save_from_workflow:
@@ -750,7 +214,7 @@ paths:
                 description: Raw workflow output that will be transformed to match the new data structure
       operationId: controllers.scenario.save_scenarios_from_workflow
       responses:
-        '200':
+        "200":
           description: Successful operation
           schema:
             type: object
@@ -759,9 +223,9 @@ paths:
                 type: integer
               message:
                 type: string
-        '400':
+        "400":
           description: Bad request - missing required fields
-        '500':
+        "500":
           description: Internal server error
 
   /api/scenario/create:
@@ -805,7 +269,7 @@ paths:
                     description: Scenario version (optional, defaults to '1.0')
       operationId: controllers.scenario.create_scenario
       responses:
-        '200':
+        "200":
           description: Successful operation
           schema:
             type: object
@@ -815,10 +279,10 @@ paths:
               message:
                 type: string
               result:
-                $ref: '#/definitions/Scenario'
-        '400':
+                $ref: "#/definitions/Scenario"
+        "400":
           description: Bad request - missing required fields
-        '500':
+        "500":
           description: Internal server error
 
   /api/scenario/list:
@@ -835,7 +299,7 @@ paths:
           description: Project ID
       operationId: controllers.scenario.get_scenarios
       responses:
-        '200':
+        "200":
           description: Successful operation
           schema:
             type: object
@@ -847,10 +311,10 @@ paths:
               result:
                 type: array
                 items:
-                  $ref: '#/definitions/Scenario'
-        '400':
+                  $ref: "#/definitions/Scenario"
+        "400":
           description: Bad request - missing project_id
-        '500':
+        "500":
           description: Internal server error
 
   /api/scenario/update:
@@ -877,10 +341,10 @@ paths:
                 type: string
                 description: Scenario ID
               scenario_data:
-                $ref: '#/definitions/Scenario'
+                $ref: "#/definitions/Scenario"
       operationId: controllers.scenario.update_scenario
       responses:
-        '200':
+        "200":
           description: Successful operation
           schema:
             type: object
@@ -889,11 +353,11 @@ paths:
                 type: integer
               message:
                 type: string
-        '400':
+        "400":
           description: Bad request - missing required fields
-        '404':
+        "404":
           description: Scenario not found
-        '500':
+        "500":
           description: Internal server error
 
   /api/scenario/delete:
@@ -915,7 +379,7 @@ paths:
           description: Scenario ID
       operationId: controllers.scenario.delete_scenario
       responses:
-        '200':
+        "200":
           description: Successful operation
           schema:
             type: object
@@ -924,963 +388,262 @@ paths:
                 type: integer
               message:
                 type: string
-        '400':
+        "400":
           description: Bad request - missing required fields
-        '404':
+        "404":
           description: Scenario not found
-        '500':
-          description: Internal server error
-
-  /api/scenario/get:
-    get:
-      summary: Get a specific test scenario
-      tags: [Scenario]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-        - name: scenario_id
-          in: query
-          required: true
-          type: string
-          description: Scenario ID
-      operationId: controllers.scenario.get_scenario
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/Scenario'
-        '400':
-          description: Bad request - missing required fields
-        '404':
-          description: Scenario not found
-        '500':
-          description: Internal server error
-
-  /api/test_case/save:
-    post:
-      summary: Save test cases for a scenario
-      tags: [TestCase]
-      consumes:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            type: object
-            required:
-              - project_id
-              - scenario_id
-              - test_cases
-            properties:
-              project_id:
-                type: string
-                description: Project ID
-              scenario_id:
-                type: string
-                description: Scenario ID
-              test_cases:
-                type: array
-                items:
-                  $ref: '#/definitions/TestCase'
-      operationId: controllers.test_case.save_test_cases
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error
-
-  /api/test_case/list:
-    get:
-      summary: Get test cases for a scenario
-      tags: [TestCase]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-        - name: scenario_id
-          in: query
-          required: true
-          type: string
-          description: Scenario ID
-      operationId: controllers.test_case.get_test_cases
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: array
-                items:
-                  $ref: '#/definitions/TestCase'
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error
-
-  /api/test_case/create:
-    post:
-      summary: Create a new test case
-      tags: [TestCase]
-      consumes:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            type: object
-            required:
-              - project_id
-              - scenario_id
-              - test_case_data
-            properties:
-              project_id:
-                type: string
-                description: Project ID
-              scenario_id:
-                type: string
-                description: Scenario ID
-              test_case_data:
-                $ref: '#/definitions/TestCase'
-      operationId: controllers.test_case.create_test_case
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/TestCase'
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error
-
-  /api/test_case/update:
-    put:
-      summary: Update a test case
-      tags: [TestCase]
-      consumes:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            type: object
-            required:
-              - project_id
-              - scenario_id
-              - test_case_id
-              - update_data
-            properties:
-              project_id:
-                type: string
-                description: Project ID
-              scenario_id:
-                type: string
-                description: Scenario ID
-              test_case_id:
-                type: string
-                description: Test case ID
-              update_data:
-                $ref: '#/definitions/TestCase'
-      operationId: controllers.test_case.update_test_case
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-        '400':
-          description: Bad request - missing required fields
-        '404':
-          description: Test case not found
-        '500':
-          description: Internal server error
-
-  /api/test_case/delete:
-    delete:
-      summary: Delete a test case
-      tags: [TestCase]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-        - name: scenario_id
-          in: query
-          required: true
-          type: string
-          description: Scenario ID
-        - name: test_case_id
-          in: query
-          required: true
-          type: string
-          description: Test case ID
-      operationId: controllers.test_case.delete_test_case
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-        '400':
-          description: Bad request - missing required fields
-        '404':
-          description: Test case not found
-        '500':
-          description: Internal server error
-
-  /api/test_case/get:
-    get:
-      summary: Get a specific test case
-      tags: [TestCase]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-        - name: scenario_id
-          in: query
-          required: true
-          type: string
-          description: Scenario ID
-        - name: test_case_id
-          in: query
-          required: true
-          type: string
-          description: Test case ID
-      operationId: controllers.test_case.get_test_case
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/TestCase'
-        '400':
-          description: Bad request - missing required fields
-        '404':
-          description: Test case not found
-        '500':
-          description: Internal server error
-
-  /api/test_run/record:
-    post:
-      summary: Record a new test run
-      tags: [TestRun]
-      consumes:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/TestRun'
-      operationId: controllers.test_run.record_test_run
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/TestRun'
-        '400':
-          description: Bad request - missing request body
-        '500':
-          description: Internal server error
-
-  /api/test_run/list_by_case:
-    get:
-      summary: Get all test runs for a specific test case
-      tags: [TestRun]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-        - name: test_case_id
-          in: query
-          required: true
-          type: string
-          description: Test case ID
-      operationId: controllers.test_run.get_test_runs_by_case
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: array
-                items:
-                  $ref: '#/definitions/TestRun'
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error
-
-  /api/test_run/latest:
-    get:
-      summary: Get the latest test run for a test case
-      tags: [TestRun]
-      produces:
-        - application/json
-      parameters:
-        - name: test_case_id
-          in: query
-          required: true
-          type: string
-          description: The ID of the test case
-      operationId: controllers.test_run.get_latest_test_run
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/TestRun'
-        '400':
-          description: Bad request - missing test case ID
-        '404':
-          description: Test run not found
-        '500':
-          description: Internal server error
-
-  /api/test_run/get:
-    get:
-      summary: Get a specific test run by run_id
-      tags: [TestRun]
-      produces:
-        - application/json
-      parameters:
-        - name: run_id
-          in: query
-          required: true
-          type: string
-          description: Test run ID
-      operationId: controllers.test_run.get_test_run
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                $ref: '#/definitions/TestRun'
-        '400':
-          description: Bad request - missing run_id
-        '404':
-          description: Test run not found
-        '500':
-          description: Internal server error
-
-  /api/test_run/update:
-    put:
-      summary: Update a specific test run
-      tags: [TestRun]
-      consumes:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            type: object
-            required:
-              - run_id
-              - update_data
-            properties:
-              run_id:
-                type: string
-                description: Test run ID
-              update_data:
-                $ref: '#/definitions/TestRun'
-      operationId: controllers.test_run.update_test_run
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-        '400':
-          description: Bad request - missing required fields
-        '404':
-          description: Test run not found
-        '500':
-          description: Internal server error
-
-  /api/test_run/delete:
-    delete:
-      summary: Delete a specific test run
-      tags: [TestRun]
-      produces:
-        - application/json
-      parameters:
-        - name: run_id
-          in: query
-          required: true
-          type: string
-          description: Test run ID
-      operationId: controllers.test_run.delete_test_run
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-        '400':
-          description: Bad request - missing run_id
-        '404':
-          description: Test run not found
-        '500':
-          description: Internal server error
-
-  /api/test_run/list_by_scenario:
-    get:
-      summary: Get all test runs for a specific scenario
-      tags: [TestRun]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-        - name: scenario_id
-          in: query
-          required: true
-          type: string
-          description: Scenario ID
-      operationId: controllers.test_run.get_test_runs_by_scenario
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: array
-                items:
-                  $ref: '#/definitions/TestRun'
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error
-
-  /api/test_run/list_by_project:
-    get:
-      summary: Get recent test runs for a project
-      tags: [TestRun]
-      produces:
-        - application/json
-      parameters:
-        - name: project_id
-          in: query
-          required: true
-          type: string
-          description: Project ID
-        - name: limit
-          in: query
-          required: false
-          type: integer
-          default: 100
-          description: Maximum number of test runs to return
-      operationId: controllers.test_run.get_test_runs_by_project
-      responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: array
-                items:
-                  $ref: '#/definitions/TestRun'
-        '400':
-          description: Bad request - missing project_id
-        '500':
+        "500":
           description: Internal server error
 
   /api/workflow/create:
     post:
-      summary: Create a new workflow definition
+      summary: Create a workflow
+      tags: [Workflow]
       operationId: controllers.workflow.create_workflow
+      consumes:
+        - application/json
       parameters:
-        - name: body
-          in: body
+        - in: body
+          name: body
           required: true
           schema:
             type: object
+            required: [project_id, api_key]
             properties:
               project_id:
                 type: string
-              name:
+              api_key:
                 type: string
-              dify_workflow_run_id:
-                type: string
-              description:
-                type: string
-              inputs:
-                type: array
-                items:
-                  type: object
-            required:
-              - project_id
-              - name
-              - dify_workflow_run_id
       responses:
-        '200':
+        "200":
           description: Workflow created
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              data:
-                $ref: '#/definitions/Workflow'
+        "400":
+          description: Missing required fields
+        "500":
+          description: Internal server error
 
   /api/workflow/get:
     get:
-      summary: Get a workflow definition by workflow_id
+      summary: Get workflow details
+      tags: [Workflow]
       operationId: controllers.workflow.get_workflow
       parameters:
-        - in: query
-          name: workflow_id
-          type: string
+        - name: workflow_id
+          in: query
           required: true
+          type: string
       responses:
-        '200':
-          description: Workflow found
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              data:
-                $ref: '#/definitions/Workflow'
-        '404':
+        "200":
+          description: Success
+        "400":
+          description: Missing workflow_id
+        "404":
           description: Workflow not found
+        "500":
+          description: Internal server error
 
   /api/workflow/update:
-    post:
-      summary: Update a workflow definition
+    put:
+      summary: Update workflow
+      tags: [Workflow]
       operationId: controllers.workflow.update_workflow
+      consumes:
+        - application/json
       parameters:
-        - name: body
-          in: body
+        - in: body
+          name: body
           required: true
           schema:
             type: object
+            required: [workflow_id, update_data]
             properties:
               workflow_id:
                 type: string
               update_data:
                 type: object
-            required:
-              - workflow_id
       responses:
-        '200':
+        "200":
           description: Workflow updated
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              data:
-                $ref: '#/definitions/Workflow'
+        "400":
+          description: Missing workflow_id
+        "500":
+          description: Internal server error
 
   /api/workflow/delete:
     delete:
-      summary: Delete a workflow definition
+      summary: Delete workflow
+      tags: [Workflow]
       operationId: controllers.workflow.delete_workflow
       parameters:
-        - in: query
-          name: workflow_id
-          type: string
+        - name: workflow_id
+          in: query
           required: true
+          type: string
       responses:
-        '200':
+        "200":
           description: Workflow deleted
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
+        "400":
+          description: Missing workflow_id
+        "500":
+          description: Internal server error
 
   /api/workflow/list:
     get:
-      summary: List all workflows for a project
-      operationId: controllers.workflow.list_workflows
-      parameters:
-        - in: query
-          name: project_id
-          type: string
-          required: true
-      responses:
-        '200':
-          description: List of workflows
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              data:
-                type: array
-                items:
-                  $ref: '#/definitions/Workflow'
-
-  /api/workflow/execute:
-    post:
-      summary: Execute a workflow
-      operationId: controllers.workflow.execute_workflow
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            type: object
-            properties:
-              workflow_id:
-                type: string
-              inputs:
-                type: object
-            required:
-              - workflow_id
-      responses:
-        '200':
-          description: Workflow execution started
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              data:
-                $ref: '#/definitions/WorkflowExecution'
-
-  /api/workflow/execution/history:
-    get:
-      summary: Get execution history for a workflow
-      operationId: controllers.workflow.get_execution_history
-      parameters:
-        - in: query
-          name: workflow_id
-          type: string
-          required: true
-      responses:
-        '200':
-          description: List of workflow executions
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              data:
-                type: array
-                items:
-                  $ref: '#/definitions/WorkflowExecution'
-
-  /api/workflow/execution/get:
-    get:
-      summary: Get a workflow execution by execution_id
-      operationId: controllers.workflow.get_execution
-      parameters:
-        - in: query
-          name: execution_id
-          type: string
-          required: true
-      responses:
-        '200':
-          description: Workflow execution found
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              data:
-                $ref: '#/definitions/WorkflowExecution'
-        '404':
-          description: Execution not found
-
-  /api/workflow/config:
-    get:
-      summary: Get workflow config for a project
+      summary: List workflows for a project
       tags: [Workflow]
-      produces:
-        - application/json
+      operationId: controllers.workflow.list_workflows
       parameters:
         - name: project_id
           in: query
           required: true
           type: string
-          description: Project ID
-      operationId: controllers.config.get_config
       responses:
-        '200':
-          description: Successful operation
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: object
-        '400':
-          description: Bad request - missing project_id
-        '500':
-          description: Internal server error
-    post:
-      summary: Save workflow config for a project
-      tags: [Workflow]
-      consumes:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            type: object
-            required:
-              - project_id
-              - variables
-            properties:
-              project_id:
-                type: string
-                description: Project ID
-              variables:
-                type: array
-                items:
-                  type: object
-      operationId: controllers.config.save_config
-      responses:
-        '200':
-          description: Workflow config saved
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: object
-        '400':
-          description: Bad request - missing project_id
-        '500':
+        "200":
+          description: Success
+        "500":
           description: Internal server error
 
-  /api/workflow/run:
-    post:
-      summary: Run a workflow via Dify and trace execution
-      tags: [Workflow]
-      consumes:
-        - application/json
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            type: object
-            required:
-              - project_id
-              - workflow_id
-              - inputs
-            properties:
-              project_id:
-                type: string
-                description: Project ID
-              workflow_id:
-                type: string
-                description: Workflow ID
-              inputs:
-                type: object
-                description: Workflow input variables
-              user:
-                type: string
-                description: User identifier (optional)
-              response_mode:
-                type: string
-                description: Dify response mode (optional, default 'blocking')
-      operationId: controllers.workflow.run_dify_workflow_controller
-      responses:
-        '200':
-          description: Dify workflow run successful
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              dify_response:
-                type: object
-                description: Raw response from Dify API
-              execution_id:
-                type: string
-        '400':
-          description: Bad request - missing required fields
-        '500':
-          description: Internal server error or Dify run failed
-
-  /api/workflow/execution/detail:
+  /api/workflow/execution_history:
     get:
-      summary: Get workflow execution detail by id
+      summary: Get execution history for a workflow
       tags: [Workflow]
-      produces:
-        - application/json
+      operationId: controllers.workflow.get_execution_history
+      parameters:
+        - name: workflow_id
+          in: query
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+        "500":
+          description: Internal server error
+
+  /api/workflow/execution:
+    get:
+      summary: Get execution details
+      tags: [Workflow]
+      operationId: controllers.workflow.get_execution
+      parameters:
+        - name: execution_id
+          in: query
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+        "400":
+          description: Missing execution_id
+        "404":
+          description: Execution not found
+        "500":
+          description: Internal server error
+
+  /api/workflow/execution_detail:
+    get:
+      summary: Get workflow execution detail
+      tags: [Workflow]
+      operationId: controllers.workflow.get_workflow_execution_detail
       parameters:
         - name: id
           in: query
           required: true
           type: string
-          description: Workflow execution id
-      operationId: controllers.workflow.get_workflow_execution_detail
       responses:
-        '200':
-          description: Workflow execution found
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-              message:
-                type: string
-              result:
-                type: object
-        '400':
-          description: Bad request - missing id
-        '404':
+        "200":
+          description: Success
+        "404":
           description: Execution not found
-        '500':
+        "500":
           description: Internal server error
 
-  /api/workflow/execution/list_by_project:
+  /api/workflow/executions_by_project:
     get:
-      summary: List all workflow executions for a project
+      summary: List workflow executions by project
       tags: [Workflow]
-      produces:
-        - application/json
+      operationId: controllers.workflow.list_workflow_executions_by_project
       parameters:
         - name: project_id
           in: query
           required: true
           type: string
-          description: Project ID
-      operationId: controllers.workflow.list_workflow_executions_by_project
       responses:
-        '200':
-          description: List of workflow executions
+        "200":
+          description: Success
+        "500":
+          description: Internal server error
+
+  /api/workflow/upload_document:
+    post:
+      summary: Upload document to workflow
+      tags: [Workflow]
+      operationId: controllers.workflow.upload_document_to_workflow
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: workflow_id
+          in: formData
+          required: true
+          type: string
+        - name: file
+          in: formData
+          required: true
+          type: file
+      responses:
+        "200":
+          description: Document uploaded
+        "400":
+          description: Missing workflow_id or file
+        "500":
+          description: Internal server error
+
+  /api/workflow/run:
+    post:
+      summary: Run Dify workflow
+      tags: [Workflow]
+      operationId: controllers.workflow.run_dify_workflow_controller
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [project_id, workflow_id, inputs]
+            properties:
+              project_id:
+                type: string
+              workflow_id:
+                type: string
+              inputs:
+                type: object
+              user:
+                type: string
+              response_mode:
+                type: string
+      responses:
+        "200":
+          description: Dify workflow run successful
+        "400":
+          description: Missing required fields
+        "500":
+          description: Internal server error
+
+  /api/document/list_by_workflow:
+    get:
+      summary: List all documents for a given workflow_id
+      tags: [Document]
+      operationId: controllers.document.get_documents_by_workflow
+      parameters:
+        - name: workflow_id
+          in: query
+          required: true
+          type: string
+          description: Workflow ID
+      responses:
+        "200":
+          description: Successful operation
           schema:
             type: object
             properties:
@@ -1891,10 +654,10 @@ paths:
               result:
                 type: array
                 items:
-                  type: object
-        '400':
-          description: Bad request - missing project_id
-        '500':
+                  $ref: "#/definitions/Document"
+        "400":
+          description: Bad request - missing workflow_id
+        "500":
           description: Internal server error
 
 definitions:
@@ -1916,15 +679,11 @@ definitions:
     type: object
     properties:
       project:
-        $ref: '#/definitions/Project'
+        $ref: "#/definitions/Project"
       scenarios:
         type: array
         items:
-          $ref: '#/definitions/Scenario'
-      tasks:
-        type: array
-        items:
-          $ref: '#/definitions/Task'
+          $ref: "#/definitions/Scenario"
 
   Document:
     type: object
@@ -1934,20 +693,6 @@ definitions:
       name:
         type: string
       url:
-        type: string
-
-  Task:
-    type: object
-    properties:
-      id:
-        type: string
-      task_name:
-        type: string
-      url:
-        type: string
-      context:
-        type: string
-      status:
         type: string
 
   Scenario:
@@ -1962,32 +707,6 @@ definitions:
       priority:
         type: string
       version:
-        type: string
-
-  TestCase:
-    type: object
-    properties:
-      id:
-        type: string
-      name:
-        type: string
-      description:
-        type: string
-      steps:
-        type: array
-        items:
-          type: string
-
-  TestRun:
-    type: object
-    properties:
-      id:
-        type: string
-      status:
-        type: string
-      started_at:
-        type: string
-      finished_at:
         type: string
 
   Workflow:

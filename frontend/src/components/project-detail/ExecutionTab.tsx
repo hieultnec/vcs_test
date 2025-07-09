@@ -1,23 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { useAppDispatch } from '@/hooks/useAppDispatch';
-import { useAppSelector } from '@/hooks/useAppSelector';
-import { fetchExecutionsByProject } from '@/store/slices/executionSlice';
+import { workflowService } from '@/services/workflowService';
 
 interface ExecutionTabProps {
-  projectId: string;
+  workflowId: string;
 }
 
-const ExecutionTab: React.FC<ExecutionTabProps> = ({ projectId }) => {
-  const dispatch = useAppDispatch();
-  const { executions, loading, error } = useAppSelector((state) => state.executions);
+const ExecutionTab: React.FC<ExecutionTabProps> = ({ workflowId }) => {
+  const [executions, setExecutions] = useState<Record<string, unknown>[]>([]);
   const [selectedExecution, setSelectedExecution] = useState<Record<string, unknown> | null>(null);
   const [showText, setShowText] = useState(false);
 
   useEffect(() => {
-    if (projectId) {
-      dispatch(fetchExecutionsByProject(projectId));
+    if (workflowId) {
+      workflowService
+        .getExecutionHistory(workflowId)
+        .then((execRes) => setExecutions((execRes as unknown as Record<string, unknown>[]) || []))
+        .catch(() => setExecutions([]));
+    } else {
+      setExecutions([]);
     }
-  }, [dispatch, projectId]);
+  }, [workflowId]);
 
   const handleViewDetails = (exec: Record<string, unknown>) => {
     setSelectedExecution(exec);
@@ -42,10 +44,8 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ projectId }) => {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold mb-2">Workflow Executions</h2>
-      {loading && <div>Loading executions...</div>}
-      {error && <div className="text-red-600">{error}</div>}
-      {!loading && executions.length === 0 && <div>No executions found for this project.</div>}
-      {!loading && executions.length > 0 && (
+      {executions.length === 0 && <div>No executions found for this workflow.</div>}
+      {executions.length > 0 && (
         <div className="overflow-x-auto">
           <table className="min-w-full border text-sm">
             <thead>

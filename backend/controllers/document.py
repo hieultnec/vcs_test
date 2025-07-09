@@ -48,17 +48,17 @@ def delete_document():
         logger.error(f"Failed to delete document: {str(e)}")
         return return_status(500, str(e))
 
-def get_documents_by_project():
-    """List all documents for a given project_id."""
+def get_documents_by_workflow():
+    """List all documents for a given workflow_id."""
     try:
         from services import document
-        project_id = request.args.get('project_id')
-        if not project_id:
-            return return_status(400, "project_id is required")
-        docs = document.get_documents_by_project(project_id)
+        workflow_id = request.args.get('workflow_id')
+        if not workflow_id:
+            return return_status(400, "workflow_id is required")
+        docs = document.get_documents_by_workflow(workflow_id)
         return return_status(200, "Success", docs)
     except Exception as e:
-        logger.error(f"Failed to get documents by project: {str(e)}")
+        logger.error(f"Failed to get documents by workflow: {str(e)}")
         return return_status(500, str(e))
 
 def get_document_detail():

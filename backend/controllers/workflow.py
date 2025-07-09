@@ -14,13 +14,10 @@ def create_workflow():
         from services import workflow
         data = request.get_json()
         project_id = data.get('project_id')
-        name = data.get('name')
-        dify_workflow_run_id = data.get('dify_workflow_run_id')
-        description = data.get('description')
-        inputs = data.get('inputs', [])
-        if not (project_id and name and dify_workflow_run_id):
+        api_key = data.get('api_key')
+        if not (project_id and api_key):
             return return_status(400, 'Missing required fields')
-        wf = workflow.create_workflow(project_id, name, dify_workflow_run_id, description, inputs)
+        wf = workflow.create_workflow(project_id, api_key)
         return return_status(200, 'Workflow created', wf)
     except Exception as e:
         logger.error(f'Failed to create workflow: {str(e)}')
@@ -76,22 +73,6 @@ def list_workflows():
         logger.error(f'Failed to list workflows: {str(e)}')
         return return_status(500, str(e))
 
-def execute_workflow():
-    try:
-        from services import workflow
-        data = request.get_json()
-        workflow_id = data.get('workflow_id')
-        inputs = data.get('inputs', {})
-        if not workflow_id:
-            return return_status(400, 'workflow_id is required')
-        # You may want to validate inputs against workflow definition here
-        execution = workflow.create_execution(workflow_id, status='pending', inputs=inputs)
-        # Optionally, trigger actual execution logic here
-        return return_status(200, 'Workflow execution started', execution)
-    except Exception as e:
-        logger.error(f'Failed to execute workflow: {str(e)}')
-        return return_status(500, str(e))
-
 def get_execution_history():
     try:
         from services import workflow
@@ -121,44 +102,46 @@ def get_execution():
         logger.error(f'Failed to get execution: {str(e)}')
         return return_status(500, str(e))
 
-def get_execution_status():
-    """Get workflow execution status."""
+def get_workflow_execution_detail():
     try:
         from services import workflow
-        execution_id = request.args.get('execution_id')
+        execution_id = request.args.get('id')
         if not execution_id:
-            return return_status(400, "execution_id is required")
-        execution = workflow.get_execution_status(execution_id)
+            return return_status(400, 'id (execution_id) is required')
+        execution = workflow.get_workflow_execution_detail(execution_id)
         if not execution:
-            return return_status(404, "Execution not found")
-        return return_status(200, "Success", execution)
+            return return_status(404, 'Execution not found')
+        return return_status(200, 'Success', execution)
     except Exception as e:
-        logger.error(f"Failed to get execution status: {str(e)}")
+        logger.error(f'Failed to get workflow execution detail: {str(e)}')
         return return_status(500, str(e))
 
-def cancel_execution():
-    """Cancel a workflow execution."""
+def list_workflow_executions_by_project():
     try:
         from services import workflow
-        execution_id = request.args.get('execution_id')
-        if not execution_id:
-            return return_status(400, "execution_id is required")
-        success = workflow.cancel_execution(execution_id)
-        if not success:
-            return return_status(404, "Execution not found")
-        return return_status(200, "Execution cancelled successfully")
+        project_id = request.args.get('project_id')
+        if not project_id:
+            return return_status(400, 'project_id is required')
+        executions = workflow.list_workflow_executions_by_project(project_id)
+        return return_status(200, 'Success', executions)
     except Exception as e:
-        logger.error(f"Failed to cancel execution: {str(e)}")
+        logger.error(f'Failed to list workflow executions by project: {str(e)}')
         return return_status(500, str(e))
 
-def get_templates():
-    """Get available workflow templates."""
+def upload_document_to_workflow():
+    """Upload a document for a workflow, requiring workflow_id."""
     try:
         from services import workflow
-        templates = workflow.get_templates()
-        return return_status(200, "Success", templates)
+        if not request.content_type or not request.content_type.startswith('multipart/form-data'):
+            return return_status(400, 'Content-Type must be multipart/form-data')
+        workflow_id = request.form.get('workflow_id')
+        file = request.files.get('file')
+        if not (workflow_id and file):
+            return return_status(400, 'workflow_id and file are required')
+        result = workflow.upload_file_to_dify(workflow_id, file)
+        return return_status(200, 'Document uploaded', result)
     except Exception as e:
-        logger.error(f"Failed to get templates: {str(e)}")
+        logger.error(f'Failed to upload document to workflow: {str(e)}')
         return return_status(500, str(e))
 
 # Route: /api/workflow/run (POST)
@@ -190,30 +173,4 @@ def run_dify_workflow_controller():
         })
     except Exception as e:
         logger.error(f'Failed to run Dify workflow: {str(e)}')
-        return return_status(500, str(e))
-
-def get_workflow_execution_detail():
-    try:
-        from services import workflow
-        execution_id = request.args.get('id')
-        if not execution_id:
-            return return_status(400, 'id (execution_id) is required')
-        execution = workflow.get_workflow_execution_detail(execution_id)
-        if not execution:
-            return return_status(404, 'Execution not found')
-        return return_status(200, 'Success', execution)
-    except Exception as e:
-        logger.error(f'Failed to get workflow execution detail: {str(e)}')
-        return return_status(500, str(e))
-
-def list_workflow_executions_by_project():
-    try:
-        from services import workflow
-        project_id = request.args.get('project_id')
-        if not project_id:
-            return return_status(400, 'project_id is required')
-        executions = workflow.list_workflow_executions_by_project(project_id)
-        return return_status(200, 'Success', executions)
-    except Exception as e:
-        logger.error(f'Failed to list workflow executions by project: {str(e)}')
         return return_status(500, str(e)) 

@@ -1,49 +1,75 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Download, Trash2, FileText, Calendar, User, Star, AlertCircle, Eye, Link, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ProjectDocument } from '@/services/projectService';
-import { documentService } from '@/services/documentService';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import {
+  Upload,
+  Download,
+  Trash2,
+  FileText,
+  Calendar,
+  User,
+  Star,
+  AlertCircle,
+  Eye,
+  Link,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ProjectDocument } from "@/services/projectService";
+import { documentService } from "@/services/documentService";
+import { useToast } from "@/hooks/use-toast";
 
 interface DocumentManagerProps {
-  projectId: string;
+  workflowId: string;
   onDocumentChange?: () => void;
 }
 
-const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocumentChange }) => {
+const DocumentManager: React.FC<DocumentManagerProps> = ({
+  workflowId,
+  onDocumentChange,
+}) => {
   const { toast } = useToast();
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [viewingDocument, setViewingDocument] = useState<ProjectDocument | null>(null);
-  const [viewingDocumentId, setViewingDocumentId] = useState<string | null>(null);
+  const [viewingDocument, setViewingDocument] =
+    useState<ProjectDocument | null>(null);
+  const [viewingDocumentId, setViewingDocumentId] = useState<string | null>(
+    null
+  );
   const [copyingLink, setCopyingLink] = useState<string | null>(null);
   const [documentContent, setDocumentContent] = useState<string | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
 
   useEffect(() => {
     loadDocuments();
-  }, [projectId]);
+  }, [workflowId]);
 
   const loadDocuments = async () => {
     try {
       setLoading(true);
       setError(null);
-      const docs = await documentService.getProjectDocuments(projectId);
+      const docs = await documentService.getWorkflowDocuments(workflowId);
       setDocuments(docs);
     } catch (err) {
-      setError('Failed to load documents');
-      console.error('Error loading documents:', err);
+      setError("Failed to load documents");
+      console.error("Error loading documents:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -54,7 +80,7 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const isCurrent = i === 0; // First file is current
-        await documentService.uploadDocument(projectId, file, isCurrent, {
+        await documentService.uploadDocument(workflowId, file, {
           size: file.size,
           type: file.type,
           lastModified: file.lastModified,
@@ -64,8 +90,8 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
       await loadDocuments();
       onDocumentChange?.();
     } catch (err) {
-      setError('Failed to upload document');
-      console.error('Error uploading document:', err);
+      setError("Failed to upload document");
+      console.error("Error uploading document:", err);
     } finally {
       setUploading(false);
     }
@@ -75,7 +101,7 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
     try {
       const blob = await documentService.downloadDocument(docItem.document_id);
       const url = window.URL.createObjectURL(blob);
-      const a = window.document.createElement('a');
+      const a = window.document.createElement("a");
       a.href = url;
       a.download = docItem.filename;
       window.document.body.appendChild(a);
@@ -83,21 +109,21 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
       window.URL.revokeObjectURL(url);
       window.document.body.removeChild(a);
     } catch (err) {
-      setError('Failed to download document');
-      console.error('Error downloading document:', err);
+      setError("Failed to download document");
+      console.error("Error downloading document:", err);
     }
   };
 
   const handleDelete = async (documentId: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
+    if (!confirm("Are you sure you want to delete this document?")) return;
 
     try {
       await documentService.deleteDocument(documentId);
       await loadDocuments();
       onDocumentChange?.();
     } catch (err) {
-      setError('Failed to delete document');
-      console.error('Error deleting document:', err);
+      setError("Failed to delete document");
+      console.error("Error deleting document:", err);
     }
   };
 
@@ -107,8 +133,8 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
       await loadDocuments();
       onDocumentChange?.();
     } catch (err) {
-      setError('Failed to set document as current');
-      console.error('Error setting current document:', err);
+      setError("Failed to set document as current");
+      console.error("Error setting current document:", err);
     }
   };
 
@@ -117,31 +143,33 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
       setViewingDocumentId(doc.document_id);
       setContentLoading(true);
       setError(null);
-      
+
       // Fetch the latest document details to ensure we have the most up-to-date information
-      const updatedDocument = await documentService.getDocument(doc.document_id);
+      const updatedDocument = await documentService.getDocument(
+        doc.document_id
+      );
       setViewingDocument(updatedDocument);
-      
+
       // Load document content for preview
       const blob = await documentService.downloadDocument(doc.document_id);
-      
+
       // Handle different file types
-      const fileExtension = doc.filename.split('.').pop()?.toLowerCase();
-      
-      if (fileExtension === 'txt') {
+      const fileExtension = doc.filename.split(".").pop()?.toLowerCase();
+
+      if (fileExtension === "txt") {
         const text = await blob.text();
         setDocumentContent(text);
-      } else if (fileExtension === 'pdf') {
+      } else if (fileExtension === "pdf") {
         // For PDFs, create a blob URL for iframe
         const url = URL.createObjectURL(blob);
         setDocumentContent(url);
       } else {
         // For other file types, show download option
-        setDocumentContent('preview-not-available');
+        setDocumentContent("preview-not-available");
       }
     } catch (err) {
-      setError('Failed to load document details');
-      console.error('Error loading document details:', err);
+      setError("Failed to load document details");
+      console.error("Error loading document details:", err);
     } finally {
       setViewingDocumentId(null);
       setContentLoading(false);
@@ -152,7 +180,7 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
     setViewingDocument(null);
     setDocumentContent(null);
     // Clean up blob URL if it exists
-    if (documentContent && documentContent.startsWith('blob:')) {
+    if (documentContent && documentContent.startsWith("blob:")) {
       URL.revokeObjectURL(documentContent);
     }
   };
@@ -161,23 +189,27 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
     try {
       setCopyingLink(doc.document_id);
       setError(null);
-      
+
       // Use the serve endpoint with filepath for secure access
-      const documentUrl = `${window.location.origin}/api/project/document/serve?filepath=${encodeURIComponent(doc.filepath)}`;
-      
+      const documentUrl = `${
+        window.location.origin
+      }/api/project/document/serve?filepath=${encodeURIComponent(
+        doc.filepath
+      )}`;
+
       // Copy to clipboard
       await navigator.clipboard.writeText(documentUrl);
-      
+
       // Show success toast with file type info
-      const fileExt = doc.filename.split('.').pop()?.toUpperCase() || 'FILE';
+      const fileExt = doc.filename.split(".").pop()?.toUpperCase() || "FILE";
       toast({
         title: "Link copied!",
         description: `Direct ${fileExt} file path (${doc.filepath}) has been copied to your clipboard.`,
       });
     } catch (err) {
-      setError('Failed to copy link');
-      console.error('Error copying link:', err);
-      
+      setError("Failed to copy link");
+      console.error("Error copying link:", err);
+
       // Show error toast
       toast({
         title: "Failed to copy link",
@@ -190,44 +222,44 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getFileIcon = (filename: string) => {
-    const ext = filename.split('.').pop()?.toLowerCase();
+    const ext = filename.split(".").pop()?.toLowerCase();
     switch (ext) {
-      case 'pdf':
-        return '📄';
-      case 'doc':
-      case 'docx':
-        return '📝';
-      case 'xls':
-      case 'xlsx':
-        return '📊';
-      case 'txt':
-        return '📄';
+      case "pdf":
+        return "📄";
+      case "doc":
+      case "docx":
+        return "📝";
+      case "xls":
+      case "xlsx":
+        return "📊";
+      case "txt":
+        return "📄";
       default:
-        return '📎';
+        return "📎";
     }
   };
 
   const canPreview = (filename: string): boolean => {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    return ext === 'pdf' || ext === 'txt';
+    const ext = filename.split(".").pop()?.toLowerCase();
+    return ext === "pdf" || ext === "txt";
   };
 
   if (loading) {
@@ -253,7 +285,8 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
             Upload Documents
           </CardTitle>
           <CardDescription>
-            Upload documents to this project. The first file will be marked as current.
+            Upload documents to this project. The first file will be marked as
+            current.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -284,7 +317,11 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
                 </span>
               </Button>
             </label>
-            {uploading && <span className="text-sm text-gray-500">Uploading documents...</span>}
+            {uploading && (
+              <span className="text-sm text-gray-500">
+                Uploading documents...
+              </span>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -310,7 +347,9 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
             <div className="text-center py-8 text-gray-500">
               <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No documents uploaded yet.</p>
-              <p className="text-sm">Upload your first document to get started.</p>
+              <p className="text-sm">
+                Upload your first document to get started.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -320,12 +359,19 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-1">
-                    <span className="text-2xl">{getFileIcon(doc.filename)}</span>
+                    <span className="text-2xl">
+                      {getFileIcon(doc.filename)}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900 truncate">{doc.filename}</h4>
+                        <h4 className="font-medium text-gray-900 truncate">
+                          {doc.filename}
+                        </h4>
                         {doc.is_current && (
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          <Badge
+                            variant="secondary"
+                            className="bg-blue-100 text-blue-800"
+                          >
                             <Star className="w-3 h-3 mr-1" />
                             Current
                           </Badge>
@@ -337,7 +383,9 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
                           {formatDate(doc.uploaded_at)}
                         </span>
                         {doc.metadata?.size && (
-                          <span>{formatFileSize(doc.metadata.size as number)}</span>
+                          <span>
+                            {formatFileSize(doc.metadata.size as number)}
+                          </span>
                         )}
                         {doc.dify_document_id && (
                           <span className="flex items-center gap-1">
@@ -418,16 +466,25 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{getFileIcon(viewingDocument.filename)}</span>
+                <span className="text-2xl">
+                  {getFileIcon(viewingDocument.filename)}
+                </span>
                 <div>
-                  <CardTitle className="text-lg">{viewingDocument.filename}</CardTitle>
+                  <CardTitle className="text-lg">
+                    {viewingDocument.filename}
+                  </CardTitle>
                   <p className="text-sm text-gray-500">
-                    Uploaded {new Date(viewingDocument.uploaded_at).toLocaleString()}
+                    Uploaded{" "}
+                    {new Date(viewingDocument.uploaded_at).toLocaleString()}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleDownload(viewingDocument)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownload(viewingDocument)}
+                >
                   <Download className="w-4 h-4 mr-2" />
                   Download
                 </Button>
@@ -443,19 +500,22 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <span className="ml-2">Loading document...</span>
               </div>
-            ) : documentContent === 'preview-not-available' ? (
+            ) : documentContent === "preview-not-available" ? (
               <div className="text-center py-12">
                 <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Preview Not Available</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Preview Not Available
+                </h3>
                 <p className="text-gray-500 mb-6">
-                  This file type cannot be previewed. Please download the file to view its contents.
+                  This file type cannot be previewed. Please download the file
+                  to view its contents.
                 </p>
                 <Button onClick={() => handleDownload(viewingDocument)}>
                   <Download className="w-4 h-4 mr-2" />
                   Download File
                 </Button>
               </div>
-            ) : documentContent && documentContent.startsWith('blob:') ? (
+            ) : documentContent && documentContent.startsWith("blob:") ? (
               <div className="w-full h-96">
                 <iframe
                   src={documentContent}
@@ -477,4 +537,4 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId, onDocument
   );
 };
 
-export default DocumentManager; 
+export default DocumentManager;

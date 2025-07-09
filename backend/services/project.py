@@ -5,16 +5,15 @@ from utils import database
 from utils.logger import logger
 # from services import document  # Move this import inside the function to avoid circular import
 
-def create(data, files=None):
+def create(data):
     """Create a new project with filesystem directory.
     
     Args:
-        data (dict): Project data containing name, description, version, owner, status
-        files (list): List of uploaded files (optional)
+        data (dict): Project data containing name, description, version, owner, status, (optional) dify_api_keys
     """
     from flask import request
     from services.config import save_config
-    from services import document  # moved here
+    from services.workflow import create_workflow
     logger.info("Creating new project with data: %s", data)
     project_id = str(uuid.uuid4())
     
@@ -41,46 +40,22 @@ def create(data, files=None):
     logger.info("Saving project to database: %s", project_data)
     database.create_project(project_data)
     logger.info("Project created successfully with ID: %s", project_id)
-     # Create default workflow config with Dify URL
-    default_variables = [
-        {
-            "id": str(uuid.uuid4()),
-            "variable_name": "dify_api_workflow_run",
-            "key": "dify_api_workflow_run",
-            "value": "https://api.dify.ai/v1/workflows/run",
-            "type": "url",
-            "description": "Dify API workflow run URL for document processing"
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "variable_name": "dify_api_workflow_upload",
-            "key": "dify_api_workflow_upload",
-            "value": "https://api.dify.ai/v1/files/upload",
-            "type": "url",
-            "description": "Dify API workflow upload URL for document processing"
-        },
-        {
-            "id": str(uuid.uuid4()),
-            "variable_name": "dify_api_key",
-            "key": "dify_api_key",
-            "value": "app-6Sz4mfB8M0hkss3mP01C51IJ",  # Default local Dify URL
-            "type": "secret",
-            "description": "Dify API key for document processing"
-        }
-    ]
-    try:
-        save_config(project_id, default_variables)
-        logger.info("Created default workflow config for project: %s", project_id)
-        from services.config import get_config
-        verification_config = get_config(project_id)
-        if not verification_config or not verification_config.get('variables'):
-            logger.error("Workflow config verification failed for project %s", project_id)
-            raise Exception("Failed to verify workflow config creation")
-    except Exception as e:
-        logger.error("Failed to create workflow config for project %s: %s", project_id, str(e))
-        raise e
     
-    return project_data
+    # Nếu có truyền dify_api_keys, tự động tạo workflow cho từng key
+    api_keys = data.get('dify_api_keys', [])
+    if isinstance(api_keys, str):
+        # Split by comma and strip whitespace for each key
+        api_keys = [k.strip() for k in api_keys.split(',') if k.strip()]
+    logger.info(f"API keys to process: {api_keys}")
+    created_workflows = []
+    for api_key in api_keys:
+        try:
+            wf = create_workflow(project_id, api_key)
+            created_workflows.append(wf)
+        except Exception as e:
+            logger.error(f"Failed to create workflow for api_key: {api_key}, error: {e}")
+    # (Optional) return created workflows in response
+    return {**project_data, "created_workflows": created_workflows}
 
 def get(project_id):
     logger.info("Getting project details: %s", project_id)

@@ -99,18 +99,3 @@ def delete_scenario():
     except Exception as e:
         logger.error(f"Failed to delete scenario: {str(e)}")
         return return_status(500, str(e))
-
-def get_scenario():
-    try:
-        project_id = request.args.get('project_id')
-        scenario_id = request.args.get('scenario_id')
-        if not project_id or not scenario_id:
-            return return_status(400, "project_id and scenario_id are required")
-        scenario = ScenarioService.get_scenario_by_id(project_id, scenario_id)
-        if scenario:
-            return return_status(200, "Success", scenario)
-        else:
-            return return_status(404, "Scenario not found")
-    except Exception as e:
-        logger.error(f"Failed to get scenario: {str(e)}")
-        return return_status(500, str(e)) 

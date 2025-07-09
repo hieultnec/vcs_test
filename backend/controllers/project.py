@@ -3,7 +3,7 @@ from utils import return_status
 from utils.logger import logger
 from services import project
 
-def list():
+def list_all():
     """List all projects."""
     logger.info("Handling request to list all projects")
     try:
@@ -18,23 +18,11 @@ def create():
     """Create a new project."""
     logger.info("Handling request to create new project")
     try:
-        if request.content_type and request.content_type.startswith('multipart/form-data'):
-            # Handle multipart form (file upload)
-            data = dict(request.form)
-            if 'name' not in data:
-                logger.warning("Missing project name in request")
-                return return_status(400, "Project name is required")
-            # Convert is_current to bool if present
-            if 'is_current' in data:
-                data['is_current'] = data['is_current'].lower() == 'true'
-            files = request.files.getlist('file')
-            result = project.create(data, files=files)
-        else:
-            data = request.get_json()
-            if not data or 'name' not in data:
-                logger.warning("Missing project name in request")
-                return return_status(400, "Project name is required")
-            result = project.create(data)
+        data = request.get_json()
+        if not data or 'name' not in data:
+            logger.warning("Missing project name in request")
+            return return_status(400, "Project name is required")
+        result = project.create(data)
         logger.info("Successfully created project with ID: %s", result.get('project_id'))
         return return_status(200, "Success", result)
     except Exception as e:

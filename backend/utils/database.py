@@ -510,10 +510,10 @@ def create_document(data):
         db = client[MONGODB_DATABASE]
         # If is_current, unset is_current for other docs in this project
         if data.get('is_current', False):
-            db.documents.update_many({'project_id': data['project_id']}, {'$set': {'is_current': False}})
+            db.documents.update_many({'workflow_id': data['workflow_id']}, {'$set': {'is_current': False}})
         document = {
             'document_id': data['document_id'],
-            'project_id': data['project_id'],
+            'workflow_id': data['workflow_id'],
             'filename': data['filename'],
             'filepath': data['filepath'],
             'dify_document_id': data.get('dify_document_id', ''),
@@ -529,16 +529,16 @@ def create_document(data):
         logger.error("Error creating document: %s", e)
         raise e
 
-def get_documents_by_project(project_id):
-    """Get all documents for a project."""
-    logger.info("Getting documents for project_id: %s", project_id)
+def get_documents_by_workflow(workflow_id):
+    """Get all documents for a workflow."""
+    logger.info("Getting documents for workflow_id: %s", workflow_id)
     try:
         client = get_connection()
         if not client:
             logger.error("Failed to connect to MongoDB")
             raise Exception("Could not connect to MongoDB")
         db = client[MONGODB_DATABASE]
-        docs = list(db.documents.find({'project_id': project_id}))
+        docs = list(db.documents.find({'workflow_id': workflow_id}))
         return serialize_doc(docs)
     except Exception as e:
         logger.error("Error getting documents: %s", e)
@@ -581,7 +581,7 @@ def update_document(document_id, data):
         if data.get('is_current', False):
             doc = db.documents.find_one({'document_id': document_id})
             if doc:
-                db.documents.update_many({'project_id': doc['project_id']}, {'$set': {'is_current': False}})
+                db.documents.update_many({'workflow_id': doc['workflow_id']}, {'$set': {'is_current': False}})
         result = db.documents.update_one({'document_id': document_id}, {'$set': data})
         logger.info("Document updated: %s", document_id)
         return result.modified_count > 0

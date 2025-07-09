@@ -57,14 +57,10 @@ export const fetchWorkflow = createAsyncThunk<Workflow, string>(
   }
 );
 
-export const createWorkflow = createAsyncThunk<Workflow, { project_id: string; name: string; description?: string; dify_workflow_run_id: string; inputs?: WorkflowInputField[] }>(
+export const createWorkflow = createAsyncThunk<Workflow, { project_id: string; api_key: string }>(
   'workflows/createWorkflow',
-  async (payload, { rejectWithValue }) => {
-    try {
-      return await workflowService.createWorkflow(payload);
-    } catch (e: unknown) {
-      return rejectWithValue(e instanceof Error ? e.message : 'Unknown error');
-    }
+  async (payload) => {
+    return await workflowService.createWorkflow(payload);
   }
 );
 

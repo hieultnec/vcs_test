@@ -2,7 +2,6 @@ from datetime import datetime
 import uuid
 from utils.database import get_connection, MONGODB_DATABASE
 from utils.logger import logger
-from services.test_case import TestCaseService
 from utils.workflow_transformer import process_workflow_output
 
 class ScenarioService:
@@ -120,24 +119,3 @@ class ScenarioService:
         except Exception as e:
             logger.error(f"Error deleting scenario: {e}")
             return False
-
-    @staticmethod
-    def get_scenario_by_id(project_id, scenario_id):
-        """Get a specific scenario by ID"""
-        logger.info(f"Fetching scenario {scenario_id} for project_id: {project_id}")
-        try:
-            client = get_connection()
-            db = client[MONGODB_DATABASE]
-            scenario = db.scenarios.find_one(
-                {'project_id': project_id, 'id': scenario_id}, 
-                {'_id': 0}
-            )
-            
-            if scenario:
-                # Add test cases to the scenario
-                scenario['test_cases'] = TestCaseService.get_test_cases(project_id, scenario_id)
-            
-            return scenario
-        except Exception as e:
-            logger.error(f"Error fetching scenario: {e}")
-            return None 

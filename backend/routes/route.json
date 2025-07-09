@@ -100,12 +100,6 @@
                "methods": ["DELETE"]
             },
             {
-               "api_name": "project/document/list_by_project",
-               "controller": "document",
-               "function": "get_documents_by_project",
-               "methods": ["GET"]
-            },
-            {
                "api_name": "project/document/detail",
                "controller": "document",
                "function": "get_document_detail",
@@ -158,12 +152,6 @@
                "controller": "scenario",
                "function": "delete_scenario",
                "methods": ["DELETE"]
-            },
-            {
-               "api_name": "scenario/get",
-               "controller": "scenario",
-               "function": "get_scenario",
-               "methods": ["GET"]
             },
             {
                "api_name": "test_case/save",

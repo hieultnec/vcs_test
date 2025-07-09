@@ -83,27 +83,21 @@ export const projectService = {
     }
   },
 
-  // Create project with file upload
-  async createProject(data: CreateProjectData): Promise<Project> {
+  // Create project with JSON payload
+  async createProject(data: CreateProjectData & { dify_api_keys?: string[] }): Promise<Project> {
     try {
-      const formData = new FormData();
-      formData.append('name', data.name);
-      if (data.description) formData.append('description', data.description);
-      if (data.owner) formData.append('owner', data.owner);
-      if (data.is_current !== undefined) formData.append('is_current', data.is_current.toString());
-      
-      if (data.file && data.file.length > 0) {
-        data.file.forEach((file) => {
-          formData.append('file', file);
-        });
-      }
-
-      const response = await apiClient.post('/api/project/create', formData, {
+      const payload: Partial<CreateProjectData & { dify_api_keys?: string[] }> = {
+        name: data.name,
+      };
+      if (data.description) payload.description = data.description;
+      if (data.owner) payload.owner = data.owner;
+      if (data.is_current !== undefined) payload.is_current = data.is_current;
+      if (data.dify_api_keys && data.dify_api_keys.length > 0) payload.dify_api_keys = data.dify_api_keys;
+      const response = await apiClient.post('/api/project/create', payload, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
         },
       });
-      // Handle both response formats
       if (isApiResponse<Project>(response.data)) {
         if (!response.data.result) {
           throw new Error('Failed to create project');

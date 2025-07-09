@@ -36,6 +36,9 @@ const CreateProject = () => {
   // Variables state
   const [variables, setVariables] = useState<WorkflowVariable[]>([]);
 
+  // Add state for Dify API keys
+  const [difyApiKeys, setDifyApiKeys] = useState<string[]>(['']);
+
   const totalSteps = 2;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -93,9 +96,23 @@ const CreateProject = () => {
     }
   };
 
+  // Handler to update a specific API key
+  const handleDifyApiKeyChange = (idx: number, value: string) => {
+    setDifyApiKeys(keys => keys.map((k, i) => i === idx ? value : k));
+  };
+
+  // Handler to add a new API key input
+  const addDifyApiKey = () => {
+    setDifyApiKeys(keys => [...keys, '']);
+  };
+
+  // Handler to remove an API key input
+  const removeDifyApiKey = (idx: number) => {
+    setDifyApiKeys(keys => keys.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.name || !formData.owner) {
       toast({
         title: "Missing information",
@@ -104,24 +121,23 @@ const CreateProject = () => {
       });
       return;
     }
-
     try {
-      const createProjectData: CreateProjectData = {
+      const createProjectData: CreateProjectData & { dify_api_keys?: string[] } = {
         name: formData.name,
         description: formData.description || undefined,
         owner: formData.owner,
         is_current: true,
       };
-
+      const filteredKeys = difyApiKeys.map(k => k.trim()).filter(Boolean);
+      if (filteredKeys.length > 0) {
+        createProjectData.dify_api_keys = filteredKeys;
+      }
       const createdProject = await projectService.createProject(createProjectData);
-      
       toast({
         title: "Project created successfully",
         description: `Project "${createdProject.name}" has been created with ID: ${createdProject.project_id}`,
       });
-      
       navigate(`/project/${createdProject.project_id}`);
-      
     } catch (error) {
       console.error('Failed to create project:', error);
       toast({
@@ -274,113 +290,36 @@ const CreateProject = () => {
       <CardHeader>
         <CardTitle className="text-xl flex items-center">
           <Settings className="w-5 h-5 mr-2" />
-          Workflow Variables (Optional)
+          Dify API Keys
         </CardTitle>
         <CardDescription>
-          Configure variables that will be used in your workflow execution
+          Enter one or more Dify API keys for this project
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {variables.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Settings className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No workflow variables configured yet.</p>
-            <p className="text-sm">Add variables to get started with your workflow.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {variables.map((variable) => (
-              <div
-                key={variable.id}
-                className="border rounded-lg p-4 space-y-4"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {getVariableIcon(variable.type)}
-                    <Badge variant="secondary" className={getVariableColor(variable.type)}>
-                      {variable.type}
-                    </Badge>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeVariable(variable.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
+        <div className="mb-6">
+          <Label className="text-sm font-medium text-gray-700">Dify API Keys</Label>
+          <div className="space-y-2 mt-2">
+            {difyApiKeys.map((key, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  placeholder="Enter Dify API key"
+                  value={key}
+                  onChange={e => handleDifyApiKeyChange(idx, e.target.value)}
+                  className="w-full"
+                />
+                {difyApiKeys.length > 1 && (
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removeDifyApiKey(idx)}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
                   </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Variable Name</Label>
-                    <Input
-                      value={variable.variable_name}
-                      onChange={(e) => updateVariable(variable.id, 'variable_name', e.target.value)}
-                      placeholder="e.g., ssh_host"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Type</Label>
-                    <Select
-                      value={variable.type}
-                      onValueChange={(value) => updateVariable(variable.id, 'type', value as WorkflowVariable['type'])}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ssh_host">SSH Host</SelectItem>
-                        <SelectItem value="ssh_port">SSH Port</SelectItem>
-                        <SelectItem value="document">Document</SelectItem>
-                        <SelectItem value="custom">Custom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Key</Label>
-                    <Input
-                      value={variable.key}
-                      onChange={(e) => updateVariable(variable.id, 'key', e.target.value)}
-                      placeholder="e.g., ssh_host"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Value</Label>
-                    <Input
-                      value={variable.value}
-                      onChange={(e) => updateVariable(variable.id, 'value', e.target.value)}
-                      placeholder="e.g., 192.168.1.9"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Description (Optional)</Label>
-                  <Input
-                    value={variable.description || ''}
-                    onChange={(e) => updateVariable(variable.id, 'description', e.target.value)}
-                    placeholder="Describe what this variable is used for"
-                  />
-                </div>
+                )}
               </div>
             ))}
+            <Button type="button" variant="outline" onClick={addDifyApiKey} className="mt-2">
+              <Plus className="w-4 h-4 mr-2" /> Add API Key
+            </Button>
           </div>
-        )}
-
-        <div className="pt-4 border-t border-gray-100">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addVariable}
-            className="w-full"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Variable
-          </Button>
         </div>
       </CardContent>
     </Card>

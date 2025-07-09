@@ -95,8 +95,8 @@ export const workflowService = {
   // Get workflow execution history for a workflow
   async getExecutionHistory(workflowId: string): Promise<WorkflowExecution[]> {
     try {
-      const response = await apiClient.get(`/api/workflow/execution/history?workflow_id=${workflowId}`);
-      return response.data.data || [];
+      const response = await apiClient.get(`/api/workflow/execution_history?workflow_id=${workflowId}`);
+      return response.data.result || [];
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
       console.error(`Failed to fetch execution history for workflow ${workflowId}:`, apiError);
@@ -151,15 +151,9 @@ export const workflowService = {
     }
   },
 
-  async createWorkflow({ project_id, name, description, dify_workflow_run_id, inputs }: { project_id: string; name: string; description?: string; dify_workflow_run_id: string; inputs?: unknown[] }) {
+  async createWorkflow({ project_id, api_key }: { project_id: string; api_key: string }) {
     try {
-      const response = await apiClient.post('/api/workflow/create', {
-        project_id,
-        name,
-        description,
-        dify_workflow_run_id,
-        inputs: inputs || [],
-      });
+      const response = await apiClient.post('/api/workflow/create', { project_id, api_key });
       return response.data.result;
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
@@ -206,6 +200,7 @@ export const workflowService = {
     user?: string;
     response_mode?: string;
   }): Promise<{ status: number; message: string; dify_response: unknown; execution_id: string; scenarios_saved: boolean }> {
+    console.log(`🚀 ~ { project_id, workflow_id, inputs, user, response_mode }:`, { project_id, workflow_id, inputs, user, response_mode })
     try {
       const response = await apiClient.post('/api/workflow/run', {
         project_id,

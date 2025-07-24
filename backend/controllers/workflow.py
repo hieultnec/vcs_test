@@ -15,13 +15,18 @@ def create_workflow():
         data = request.get_json()
         project_id = data.get('project_id')
         api_key = data.get('api_key')
+        mode = data.get('mode')
+
         if not (project_id and api_key):
             return return_status(400, 'Missing required fields')
-        wf = workflow.create_workflow(project_id, api_key)
-        return return_status(200, 'Workflow created', wf)
+        wf = workflow.create_workflow(project_id, api_key, mode)
+        if wf and wf.get('workflow_id'):
+            return return_status(200, 'Workflow created', {'success': True, 'workflow': wf})
+        else:
+            return return_status(500, 'Failed to create workflow', {'success': False})
     except Exception as e:
         logger.error(f'Failed to create workflow: {str(e)}')
-        return return_status(500, str(e))
+        return return_status(500, str(e), {'success': False})
 
 def get_workflow():
     try:
@@ -173,4 +178,16 @@ def run_dify_workflow_controller():
         })
     except Exception as e:
         logger.error(f'Failed to run Dify workflow: {str(e)}')
+        return return_status(500, str(e)) 
+
+def sync_workflow():
+    try:
+        from services import workflow
+        workflow_id = request.args.get('workflow_id')
+        if not workflow_id:
+            return return_status(400, 'workflow_id is required')
+        updated = workflow.sync_workflow_status_from_logs(workflow_id)
+        return return_status(200, 'Sync completed', {'updated': updated})
+    except Exception as e:
+        logger.error(f'Failed to sync workflow: {str(e)}')
         return return_status(500, str(e)) 

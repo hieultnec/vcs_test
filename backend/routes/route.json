@@ -331,6 +331,12 @@
                "endpoint": "get_execution",
                "view_func": "workflow.get_execution",
                "methods": ["GET"]
+            },
+            {
+               "rule": "/api/workflow/sync_workflow",
+               "endpoint": "sync_workflow",
+               "view_func": "workflow.sync_workflow",
+               "methods": ["GET"]
             }
          ]
       }

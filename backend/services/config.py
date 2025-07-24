@@ -3,6 +3,7 @@ from datetime import datetime
 from utils import database
 from utils.logger import logger
 
+
 def get_config(project_id):
     """Get workflow config for a project."""
     logger.info(f"Getting workflow config for project: {project_id}")
@@ -17,22 +18,21 @@ def get_config(project_id):
                 "project_id": project_id,
                 "variables": [],
                 "created_at": None,
-                "updated_at": None
+                "updated_at": None,
             }
     except Exception as e:
-        logger.error(f"Error getting workflow config for project {project_id}: {str(e)}")
+        logger.error(
+            f"Error getting workflow config for project {project_id}: {str(e)}"
+        )
         raise e
+
 
 def save_config(project_id, variables):
     """Save workflow config for a project."""
     logger.info(f"Saving workflow config for project: {project_id}")
     try:
         now = datetime.utcnow()
-        config = {
-            "project_id": project_id,
-            "variables": variables,
-            "updated_at": now
-        }
+        config = {"project_id": project_id, "variables": variables, "updated_at": now}
         existing_config = database.get_workflow_config(project_id)
         if existing_config:
             config["created_at"] = existing_config.get("created_at", now)
@@ -47,4 +47,4 @@ def save_config(project_id, variables):
             raise Exception("Failed to save workflow configuration")
     except Exception as e:
         logger.error(f"Error saving workflow config for project {project_id}: {str(e)}")
-        raise e 
+        raise e

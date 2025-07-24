@@ -104,6 +104,7 @@ type WorkflowCard = Workflow & { created_at?: string; updated_at?: string };
 // Define a type for the workflow creation form
 interface CreateWorkflowForm {
   api_key: string;
+  mode: string;
 }
 
 const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
@@ -134,7 +135,7 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
   const methods = useForm<Record<string, string>>();
   // react-hook-form for create/edit
   const createMethods = useForm<CreateWorkflowForm>({
-    defaultValues: { api_key: "" },
+    defaultValues: { api_key: "", mode: "CLOUD" },
   });
   const editMethods = useForm<Partial<Workflow>>({
     defaultValues: editForm || {
@@ -177,7 +178,7 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
     setCrudLoading(true);
     try {
       await dispatch(
-        createWorkflowThunk({ project_id: projectId, api_key: data.api_key })
+        createWorkflowThunk({ project_id: projectId, api_key: data.api_key, mode: data.mode })
       ).unwrap();
       setShowCreateModal(false);
       toast({
@@ -476,6 +477,23 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200 focus:border-indigo-500"
                   placeholder="Enter Dify API Key"
                 />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="mode"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Dify Mode
+                </label>
+                <select
+                  id="mode"
+                  {...createMethods.register("mode", { required: true })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200 focus:border-indigo-500"
+                  defaultValue="CLOUD"
+                >
+                  <option value="CLOUD">CLOUD</option>
+                  <option value="LOCAL">LOCAL</option>
+                </select>
               </div>
               <DialogFooter className="pt-4">
                 <Button

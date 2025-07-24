@@ -151,9 +151,9 @@ export const workflowService = {
     }
   },
 
-  async createWorkflow({ project_id, api_key }: { project_id: string; api_key: string }) {
+  async createWorkflow({ project_id, api_key, mode }: { project_id: string; api_key: string; mode: string }) {
     try {
-      const response = await apiClient.post('/api/workflow/create', { project_id, api_key });
+      const response = await apiClient.post('/api/workflow/create', { project_id, api_key, mode });
       return response.data.result;
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
@@ -225,6 +225,21 @@ export const workflowService = {
       return response.data.result || [];
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
+      throw new Error(ApiErrorHandler.getErrorMessage(apiError));
+    }
+  },
+
+  // Sync workflow status from backend
+  async syncWorkflowStatus(workflowId: string): Promise<{ updated: boolean }> {
+    try {
+      const response = await apiClient.get(`/api/workflow/sync_workflow?workflow_id=${workflowId}`);
+      if (response.data && response.data.result) {
+        return response.data.result;
+      }
+      return { updated: false };
+    } catch (error) {
+      const apiError = ApiErrorHandler.handleError(error);
+      console.error('Failed to sync workflow status:', apiError);
       throw new Error(ApiErrorHandler.getErrorMessage(apiError));
     }
   },

@@ -57,7 +57,7 @@ export const fetchWorkflow = createAsyncThunk<Workflow, string>(
   }
 );
 
-export const createWorkflow = createAsyncThunk<Workflow, { project_id: string; api_key: string }>(
+export const createWorkflow = createAsyncThunk<Workflow, { project_id: string; api_key: string; mode: string }>(
   'workflows/createWorkflow',
   async (payload) => {
     return await workflowService.createWorkflow(payload);

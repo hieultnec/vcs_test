@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { workflowService } from '@/services/workflowService';
+import { toast } from '@/hooks/use-toast';
 
 interface ExecutionTabProps {
   workflowId: string;
@@ -20,6 +21,7 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ workflowId }) => {
   const [executions, setExecutions] = useState<Record<string, unknown>[]>([]);
   const [selectedExecution, setSelectedExecution] = useState<Record<string, unknown> | null>(null);
   const [showText, setShowText] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (workflowId) {
@@ -31,6 +33,26 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ workflowId }) => {
       setExecutions([]);
     }
   }, [workflowId]);
+
+  const handleSyncWorkflow = async () => {
+    if (!workflowId) return;
+    setSyncing(true);
+    try {
+      const res = await workflowService.syncWorkflowStatus(workflowId);
+      if (res.updated) {
+        toast({ title: 'Workflow status updated from Dify', description: 'The workflow status has been synchronized.' });
+      } else {
+        toast({ title: 'No changes', description: 'Workflow status is already up to date.' });
+      }
+      // Reload executions after sync
+      const execRes = await workflowService.getExecutionHistory(workflowId);
+      setExecutions((execRes as unknown as Record<string, unknown>[]) || []);
+    } catch (e) {
+      toast({ title: 'Sync failed', description: String(e), variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleViewDetails = (exec: Record<string, unknown>) => {
     setSelectedExecution(exec);
@@ -54,6 +76,15 @@ const ExecutionTab: React.FC<ExecutionTabProps> = ({ workflowId }) => {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
+          onClick={handleSyncWorkflow}
+          disabled={syncing || !workflowId}
+        >
+          {syncing ? 'Syncing...' : 'Sync Workflow Status'}
+        </button>
+      </div>
       <h2 className="text-xl font-bold mb-2">Workflow Executions</h2>
       {executions.length === 0 && <div>No executions found for this workflow.</div>}
       {executions.length > 0 && (

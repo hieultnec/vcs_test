@@ -630,6 +630,39 @@ paths:
         "500":
           description: Internal server error
 
+  /api/workflow/sync_workflow:
+    get:
+      summary: Sync workflow status from Dify
+      tags: [Workflow]
+      operationId: controllers.workflow.sync_workflow
+      parameters:
+        - name: workflow_id
+          in: query
+          required: true
+          type: string
+          description: Workflow ID
+      responses:
+        "200":
+          description: Sync completed
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+                properties:
+                  updated:
+                    type: boolean
+        "400":
+          description: Missing workflow_id
+        "404":
+          description: Workflow not found
+        "500":
+          description: Internal server error
+
   /api/document/list_by_workflow:
     get:
       summary: List all documents for a given workflow_id

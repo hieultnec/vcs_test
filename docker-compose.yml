@@ -9,6 +9,7 @@ services:
       - "5000:5000"
     networks:
       - atc_network
+      - sugoi_network
     env_file:
       - .env
     volumes:
@@ -39,12 +40,15 @@ services:
       - "8080:8080"
     networks:
       - atc_network
+      - sugoi_network
     environment:
       - VITE_API_BASE_URL=http://localhost:5000
 
 networks:
   atc_network:
     driver: bridge
+  sugoi_network:
+    name: sugoi_network
 
 volumes:
   lagavue_backend_projects:

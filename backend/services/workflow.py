@@ -167,6 +167,12 @@ def run_dify_workflow_async(
             api_key, inputs, user, response_mode, workflow.get("mode")
         )
 
+        # Save execution record
+        status = response_json.get('data', {}).get('status', 'succeeded' if response_json.get('data') else 'unknown')
+        outputs = response_json.get('data', {}).get('outputs')
+        error = response_json.get('error') or None
+        total_steps = response_json.get('data', {}).get('total_steps')
+        total_tokens = response_json.get('data', {}).get('total_tokens')
         task_id = response_json.get("task_id")
         workflow_run_id = response_json.get("workflow_run_id") or response_json.get("data", {}).get("id")
 
@@ -174,10 +180,20 @@ def run_dify_workflow_async(
         execution = create_execution(
             workflow_id=workflow_id,
             project_id=project_id,
-            status="pending",
+            status=status,
             inputs=inputs,
+            outputs=outputs,
+            error=error,
+            total_steps=total_steps,
+            total_tokens=total_tokens
         )
         execution_id = execution.get("id")
+         # --- NEW: Auto-save test scenarios from workflow output ---
+        if status == 'succeeded' and outputs and outputs.get('structured_output'):
+            try:
+                ScenarioService.save_scenarios_from_workflow(project_id, {"structured_output": outputs['structured_output']}, execution_id)
+            except Exception as e:
+                logger.error(f"Error auto-saving test scenarios from workflow output: {str(e)}")
 
         # Step 3: Lưu task_id và workflow_run_id (có thể cập nhật vào DB nếu cần)
         if execution_id and (task_id or workflow_run_id):
@@ -192,14 +208,18 @@ def run_dify_workflow_async(
             "dify_response": response_json,
         }
     except Exception as e:
-        logger.error(f"Error triggering Dify workflow: {str(e)}")
+        logger.error(f"Error running Dify workflow: {str(e)}")
         execution = create_execution(
             workflow_id=workflow_id,
             project_id=project_id,
             status="failed",
             inputs=inputs,
+            outputs=None,
             error=str(e),
+            total_steps=None,
+            total_tokens=None
         )
+        execution_id = execution.get('id') if isinstance(execution, dict) else None
         raise
 
 
@@ -232,6 +252,14 @@ def sync_workflow_status_from_logs(workflow_id):
     if logs.get("outputs") and logs["outputs"] != workflow.get("outputs"):
         update_data["outputs"] = logs["outputs"]
     # Có thể so sánh thêm các trường khác nếu cần
+    if logs.get("total_steps") and logs["total_steps"] != workflow.get("total_steps"):
+        update_data["total_steps"] = logs["total_steps"]
+    if logs.get("total_tokens") and logs["total_tokens"] != workflow.get("total_tokens"):
+        update_data["total_tokens"] = logs["total_tokens"]
+    if logs.get("total_cost") and logs["total_cost"] != workflow.get("total_cost"):
+        update_data["total_cost"] = logs["total_cost"]
+    if logs.get("total_time") and logs["total_time"] != workflow.get("total_time"):
+        update_data["total_time"] = logs["total_time"]
     if update_data:
         update_workflow(workflow_id, update_data)
         return True  # Đã cập nhật

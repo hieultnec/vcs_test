@@ -13,12 +13,47 @@ services:
     env_file:
       - .env
     volumes:
-      - ./backend:/app
-      - lagavue_backend_projects:/app/projects
+      - ./backend:/backend
+      - lagavue_backend_projects:/backend/projects
+      # Shared memory for Chrome (important for stability)
+      - /dev/shm:/dev/shm
+      # Optional: X11 forwarding for debugging (Linux/macOS only)
+      # Uncomment the next line if you need to see Chrome UI for debugging
+      # - /tmp/.X11-unix:/tmp/.X11-unix:rw
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=development
       - LAVAGUE_TELEMETRY=NONE
+      # Display for headless Chrome
+      - DISPLAY=:99
+      # Chrome optimization flags
+      - CHROME_FLAGS=--no-sandbox --disable-dev-shm-usage --disable-gpu --headless=new
+      # Python settings
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/:/backend
+      # Selenium settings
+      - SELENIUM_BROWSER=chrome
+      - WEBDRIVER_CHROME_DRIVER=/usr/local/bin/chromedriver
+    # Security context for Chrome
+    security_opt:
+      - seccomp:unconfined
+    # Memory limits to prevent Chrome from consuming too much memory
+    mem_limit: 2g
+    memswap_limit: 2g
+    # Shared memory size for Chrome
+    shm_size: 1g
+    # Allow Chrome to run properly in container
+    cap_add:
+      - SYS_ADMIN
+    # Restart policy
+    restart: unless-stopped
+    # Health check to ensure service is running
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   mongodb:
     image: mongo:latest
@@ -27,10 +62,29 @@ services:
     env_file:
       - .env
     ports:
-      - 27017:27017
+      - "27017:27017"
     volumes:
       - lagavue_mongodb_data:/data/db
+    restart: unless-stopped
+    # Health check for MongoDB
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
+  # Optional: Add a lightweight web-based Chrome debugging interface
+  # Uncomment if you need to debug Chrome remotely
+  # chrome-debug:
+  #   image: zenika/alpine-chrome:latest
+  #   ports:
+  #     - "9222:9222"
+  #   command: --remote-debugging-address=0.0.0.0 --remote-debugging-port=9222
+  #   networks:
+  #     - atc_network
+
+  # Frontend service (currently commented out)
   # frontend:
   #   build:
   #     context: ./frontend
@@ -44,15 +98,28 @@ services:
   #     - sugoi_network
   #   environment:
   #     - VITE_API_BASE_URL=http://localhost:5000
+  #   restart: unless-stopped
 
 networks:
   atc_network:
     driver: bridge
+    # Configure network for better container communication
+    driver_opts:
+      com.docker.network.driver.mtu: 1450
   sugoi_network:
     name: sugoi_network
+    external: true
 
 volumes:
   lagavue_backend_projects:
     driver: local
   lagavue_mongodb_data:
     driver: local
+
+# Additional configuration for development
+x-development: &development
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "100m"
+      max-file: "3"

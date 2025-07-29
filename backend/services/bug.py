@@ -10,17 +10,20 @@ class BugService:
     @staticmethod
     def create_bug(data):
         """Create a new bug."""
-        logger.info(f"Creating new bug for project: {data.get('project_id')}")
         try:
             client = get_connection()
             db = client[MONGODB_DATABASE]
-            
+            logger.debug(f"[create_bug] Connected to DB: {MONGODB_DATABASE} at {client.address}")
+
             bug_id = str(uuid.uuid4())
             now = datetime.utcnow()
-            
+
+            # Ensure project_id is str
+            project_id = str(data['project_id'])
+
             bug_doc = {
                 'bug_id': bug_id,
-                'project_id': data['project_id'],
+                'project_id': project_id,
                 'task_id': data.get('task_id'),
                 'scenario_id': data.get('scenario_id'),
                 'summary': data['summary'],
@@ -32,33 +35,46 @@ class BugService:
                 'created_by': data.get('created_by', 'system'),
                 'environment': data.get('environment', {})
             }
-            
+
+            logger.debug(f"[create_bug] Inserting bug: {bug_doc}")
             result = db.bugs.insert_one(bug_doc)
             bug_doc['_id'] = str(result.inserted_id)
-            logger.info(f"Bug created successfully with ID: {bug_id}")
+
+            logger.info(f"[create_bug] Bug created successfully with ID: {bug_id}")
             return bug_doc
         except Exception as e:
-            logger.error(f"Error creating bug: {e}")
+            logger.error(f"[create_bug] Error creating bug: {e}", exc_info=True)
             raise e
+
 
     @staticmethod
     def get_bugs(project_id, filters=None):
         """Get all bugs for a project with optional filters."""
-        logger.info(f"Fetching bugs for project: {project_id}")
         try:
             client = get_connection()
             db = client[MONGODB_DATABASE]
-            
+            logger.debug(f"[get_bugs] Connected to DB: {MONGODB_DATABASE} at {client.address}")
+
+            # Ensure project_id is str
+            project_id = str(project_id)
             query = {'project_id': project_id}
+
             if filters:
                 query.update({k: v for k, v in filters.items() if v is not None})
-            
+
+            logger.debug(f"[get_bugs] Query: {query}")
             bugs = list(db.bugs.find(query, {'_id': 0}).sort('created_at', -1))
-            logger.info(f"Found {len(bugs)} bugs for project {project_id}")
+            logger.debug(f"[get_bugs] Total bugs returned: {len(bugs)}")
+
+            # Optional: log existing bugs for verification
+            all_bugs = list(db.bugs.find({}, {'_id': 0}))
+            logger.debug(f"[get_bugs] Current bugs in DB: {all_bugs}")
+
             return bugs
         except Exception as e:
-            logger.error(f"Error fetching bugs: {e}")
+            logger.error(f"[get_bugs] Error fetching bugs: {e}", exc_info=True)
             return []
+
 
     @staticmethod
     def get_bug(bug_id):

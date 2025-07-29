@@ -8,7 +8,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import ScenarioFormModal from './ScenarioFormModal';
 import TestCaseFormModal from './TestCaseFormModal';
+import ScanSetupModal from '../ScanSetupModal';
 import { scenarioService, Scenario, CreateScenarioData } from '@/services/scenarioService';
+import { CodexTask } from '@/services/codexService';
 import { testCaseService, CreateTestCaseData } from '@/services/testCaseService';
 import { useToast } from '@/hooks/use-toast';
 
@@ -58,6 +60,9 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
   const [editingScenario, setEditingScenario] = useState<Scenario | undefined>();
   const [selectedScenarioForTestCase, setSelectedScenarioForTestCase] = useState<string | undefined>();
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
+  const [scenarioStatuses, setScenarioStatuses] = useState<Record<string, 'Running' | 'Passed' | 'Failed' | 'Pending'>>({});
   const { toast } = useToast();
 
   // Load scenarios on component mount
@@ -216,7 +221,87 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
   };
 
   const handleRunScenario = (scenarioId: string, scenarioName: string) => {
-    console.log(`Running scenario: ${scenarioName} (ID: ${scenarioId})`);
+    const scenario = scenarios.find(s => s.id === scenarioId);
+    if (scenario) {
+      setSelectedScenario(scenario);
+      setIsScanModalOpen(true);
+    }
+  };
+
+  const handleScanStart = (task: CodexTask) => {
+    if (!selectedScenario) return;
+
+    console.log('🚀 Starting security scan for scenario:', selectedScenario.name);
+    console.log('📋 Scan task:', task);
+
+    // Update scenario status to "Running"
+    setScenarioStatuses(prev => ({
+      ...prev,
+      [selectedScenario.id]: 'Running'
+    }));
+
+    // Close modal
+    setIsScanModalOpen(false);
+
+    // Show toast notification
+    toast({
+      title: "Scan Started",
+      description: `Security scan initiated for scenario: ${selectedScenario.name}`,
+    });
+
+    // Simulate scan execution
+    setTimeout(() => {
+      const mockResults = {
+        scanId: `scan_${Date.now()}`,
+        scenarioId: selectedScenario.id,
+        scenarioName: selectedScenario.name,
+        prompt: task.prompt,
+        repository: task.repo_label,
+        startTime: new Date().toISOString(),
+        findings: [
+          {
+            type: 'security',
+            severity: 'high',
+            description: 'SQL injection vulnerability detected',
+            location: 'authentication module'
+          },
+          {
+            type: 'security',
+            severity: 'medium',
+            description: 'Weak password policy',
+            location: 'user registration'
+          },
+          {
+            type: 'performance',
+            severity: 'low',
+            description: 'Inefficient query execution',
+            location: 'data retrieval layer'
+          }
+        ],
+        status: 'completed',
+        duration: '4.7s'
+      };
+
+      // Update scenario status to "Passed" (or "Failed" based on findings)
+      const hasHighSeverityIssues = mockResults.findings.some(f => f.severity === 'high');
+      setScenarioStatuses(prev => ({
+        ...prev,
+        [selectedScenario.id]: hasHighSeverityIssues ? 'Failed' : 'Passed'
+      }));
+
+      // Show completion toast
+      toast({
+        title: "Scan Completed",
+        description: `Security scan finished for ${selectedScenario.name}. Found ${mockResults.findings.length} issues.`,
+        variant: hasHighSeverityIssues ? "destructive" : "default"
+      });
+
+      console.log('✅ Scan completed for:', selectedScenario.name);
+      console.log('📊 Results:', mockResults);
+    }, 4000);
+
+    // Reset selected scenario
+    setSelectedScenario(null);
   };
 
   const handleRunTestCase = (testCaseId: string, testCaseName: string) => {
@@ -294,74 +379,104 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
                   open={expandedScenarios.includes(scenario.id)}
                   onOpenChange={() => toggleScenario(scenario.id)}
                 >
-                  <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded hover:bg-gray-100 border border-gray-200">
-                      <div className="flex items-center gap-2">
-                        {expandedScenarios.includes(scenario.id) ? (
-                          <ChevronDown className="w-3 h-3 text-gray-600" />
-                        ) : (
-                          <ChevronRight className="w-3 h-3 text-gray-600" />
-                        )}
-                        <span className="font-medium text-gray-900 text-sm">{scenario.name}</span>
-                        <Badge className={`${getPriorityColor(scenario.priority)} text-xs px-1 py-0`} variant="outline">
-                          {scenario.priority}
+                  <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded hover:bg-gray-100 border border-gray-200">
+                    <CollapsibleTrigger className="flex items-center gap-2 flex-1">
+                      {expandedScenarios.includes(scenario.id) ? (
+                        <ChevronDown className="w-3 h-3 text-gray-600" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3 text-gray-600" />
+                      )}
+                      <span className="font-medium text-gray-900 text-sm">{scenario.name}</span>
+                      <Badge className={`${getPriorityColor(scenario.priority)} text-xs px-1 py-0`} variant="outline">
+                        {scenario.priority}
+                      </Badge>
+                      {scenarioStatuses[scenario.id] && (
+                        <Badge className={`text-xs px-1 py-0 ${
+                          scenarioStatuses[scenario.id] === 'Running' ? 'bg-blue-100 text-blue-800' :
+                          scenarioStatuses[scenario.id] === 'Passed' ? 'bg-green-100 text-green-800' :
+                          scenarioStatuses[scenario.id] === 'Failed' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`} variant="outline">
+                          {scenarioStatuses[scenario.id]}
                         </Badge>
-                        <span className="text-[11px] text-gray-400">{scenario.test_cases?.length || 0} cases</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button size="sm" variant="ghost" className="p-1 h-6 w-6" onClick={(e) => { e.stopPropagation(); handleRunScenario(scenario.id, scenario.name); }}>
-                              <Play className="w-3 h-3" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Run scenario</p>
-                          </TooltipContent>
-                        </Tooltip>
-                        <Button size="sm" variant="ghost" className="p-1 h-6 w-6" onClick={(e) => { e.stopPropagation(); handleEditScenario(scenario); }}>
-                          <Edit3 className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="p-1 h-6 w-6" onClick={(e) => { e.stopPropagation(); handleAddTestCase(scenario.id); }}>
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="ghost" className="p-1 h-6 w-6 text-red-600 hover:text-red-700" onClick={e => e.stopPropagation()}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="text-base">Delete Scenario</AlertDialogTitle>
-                              <AlertDialogDescription className="text-xs">
-                                Are you sure you want to delete "{scenario.name}"? This cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="px-2 py-1 text-xs">Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteScenario(scenario.id)} className="bg-red-600 hover:bg-red-700 px-2 py-1 text-xs">
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
+                      )}
+                      <span className="text-[11px] text-gray-400">{scenario.test_cases?.length || 0} cases</span>
+                    </CollapsibleTrigger>
+                    <div className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="p-1 h-6 w-6" 
+                            onClick={(e) => { e.stopPropagation(); handleRunScenario(scenario.id, scenario.name); }}
+                            disabled={scenarioStatuses[scenario.id] === 'Running'}
+                          >
+                            <Play className="w-3 h-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">
+                            {scenarioStatuses[scenario.id] === 'Running' ? 'Scan in progress...' : 'Run security scan'}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Button size="sm" variant="ghost" className="p-1 h-6 w-6" onClick={(e) => { e.stopPropagation(); handleEditScenario(scenario); }}>
+                        <Edit3 className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="p-1 h-6 w-6" onClick={(e) => { e.stopPropagation(); handleAddTestCase(scenario.id); }}>
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="ghost" className="p-1 h-6 w-6 text-red-600 hover:text-red-700" onClick={e => e.stopPropagation()}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-base">Delete Scenario</AlertDialogTitle>
+                            <AlertDialogDescription className="text-xs">
+                              Are you sure you want to delete "{scenario.name}"? This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="px-2 py-1 text-xs">Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteScenario(scenario.id)} className="bg-red-600 hover:bg-red-700 px-2 py-1 text-xs">
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
-                  </CollapsibleTrigger>
+                  </div>
                   <CollapsibleContent>
                     <div className="ml-4 mt-1 space-y-1">
                       {scenario.test_cases && scenario.test_cases.length > 0 ? (
                         scenario.test_cases.map((testCase) => (
                           <div key={testCase.id} className="flex items-center justify-between px-3 py-2 bg-blue-50 rounded border border-blue-200">
                             <span className="text-sm text-blue-900">{testCase.title}</span>
-                            <Badge className={`${getStatusColor(testCase.status)} text-xs px-1 py-0`} variant="outline">
-                              {testCase.status}
-                            </Badge>
-                            <span className="text-[11px] text-blue-600">v{testCase.version}</span>
-                            <Button variant="ghost" size="sm" className="p-1 h-6 w-6">
-                              <Play className="w-3 h-3" />
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Badge className={`${getStatusColor(testCase.status)} text-xs px-1 py-0`} variant="outline">
+                                {testCase.status}
+                              </Badge>
+                              <span className="text-[11px] text-blue-600">v{testCase.version}</span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="p-1 h-6 w-6"
+                                    onClick={() => handleRunTestCase(testCase.id, testCase.title)}
+                                  >
+                                    <Play className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Run test case</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -393,6 +508,16 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
         projectId={projectId}
         scenarios={scenarios}
         onSubmit={handleTestCaseSubmit}
+      />
+
+      <ScanSetupModal
+        isOpen={isScanModalOpen}
+        onClose={() => {
+          setIsScanModalOpen(false);
+          setSelectedScenario(null);
+        }}
+        onScanStart={handleScanStart}
+        initialPrompt={selectedScenario?.name}
       />
     </TooltipProvider>
   );

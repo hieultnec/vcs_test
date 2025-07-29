@@ -140,10 +140,16 @@ def upload_document_to_workflow():
         if not request.content_type or not request.content_type.startswith('multipart/form-data'):
             return return_status(400, 'Content-Type must be multipart/form-data')
         workflow_id = request.form.get('workflow_id')
+        # Get workflow by workflow_id to take mode 
+        wf = workflow.get_workflow(workflow_id)
+        if not wf:
+            return return_status(404, 'Workflow not found')
+        mode = wf.get('mode')
+        
         file = request.files.get('file')
         if not (workflow_id and file):
             return return_status(400, 'workflow_id and file are required')
-        result = workflow.upload_file_to_dify(workflow_id, file)
+        result = workflow.upload_file_to_dify(workflow_id, file, mode)
         return return_status(200, 'Document uploaded', result)
     except Exception as e:
         logger.error(f'Failed to upload document to workflow: {str(e)}')
@@ -152,7 +158,7 @@ def upload_document_to_workflow():
 # Route: /api/workflow/run (POST)
 def run_dify_workflow_controller():
     try:
-        from services.workflow import run_dify_workflow
+        from services.workflow import run_dify_workflow_async
         data = request.get_json()
         project_id = data.get('project_id')
         workflow_id = data.get('workflow_id')
@@ -161,7 +167,7 @@ def run_dify_workflow_controller():
         response_mode = data.get('response_mode', 'blocking')
         if not (project_id and workflow_id and inputs):
             return return_status(400, 'project_id, workflow_id, and inputs are required')
-        result = run_dify_workflow(project_id, workflow_id, inputs, user=user, response_mode=response_mode)
+        result = run_dify_workflow_async(project_id, workflow_id, inputs, user=user, response_mode=response_mode)
         
         # Check if scenarios were auto-saved
         scenarios_saved = False

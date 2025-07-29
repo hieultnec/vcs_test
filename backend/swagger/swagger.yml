@@ -12,6 +12,8 @@ tags:
     description: Test scenario management endpoints
   - name: Workflow
     description: Workflow management endpoints
+  - name: Codex
+    description: Codex integration endpoints
 
 paths:
   /api/ping:
@@ -1004,6 +1006,154 @@ paths:
                   $ref: "#/definitions/Document"
         "400":
           description: Bad request - missing workflow_id
+        "500":
+          description: Internal server error
+
+  /api/codex/repos:
+    get:
+      summary: Get list of repositories from Codex
+      tags: [Codex]
+      operationId: controllers.codex.get_repos
+      responses:
+        "200":
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+                properties:
+                  repos:
+                    type: array
+                    items:
+                      type: string
+        "500":
+          description: Internal server error
+
+  /api/codex/run:
+    post:
+      summary: Submit prompt to Codex with repository and environment
+      tags: [Codex]
+      operationId: controllers.codex.run_codex
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [prompt, repo_label]
+            properties:
+              prompt:
+                type: string
+                description: The prompt to submit to Codex
+              repo_label:
+                type: string
+                description: Repository label/name
+              environment_id:
+                type: string
+                description: Environment identifier (optional)
+      responses:
+        "200":
+          description: Prompt submitted successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                  prompt:
+                    type: string
+                  repo_label:
+                    type: string
+                  environment_id:
+                    type: string
+                  status:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+        "400":
+          description: Bad request - missing required fields
+        "500":
+          description: Internal server error
+
+  /api/codex/task/{task_id}:
+    get:
+      summary: Get task status and result by task ID
+      tags: [Codex]
+      operationId: controllers.codex.get_task
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          type: string
+          description: Task ID
+      responses:
+        "200":
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                  status:
+                    type: string
+                  message:
+                    type: string
+        "400":
+          description: Bad request - missing task_id
+        "500":
+          description: Internal server error
+
+  /api/codex/task/submitted:
+    get:
+      summary: Get submitted tasks for a repository
+      tags: [Codex]
+      operationId: controllers.codex.get_task_submitted
+      parameters:
+        - name: repo_label
+          in: query
+          required: true
+          type: string
+          description: Repository label
+      responses:
+        "200":
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+                properties:
+                  submitted_tasks:
+                    type: array
+                    items:
+                      type: object
+        "400":
+          description: Bad request - missing repo_label
         "500":
           description: Internal server error
 

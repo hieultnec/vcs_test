@@ -258,7 +258,7 @@ const WorkflowTab: React.FC<WorkflowTabProps> = ({ projectId }) => {
   // Search/filter workflows
   const filteredWorkflows = workflows.filter(
     (wf) =>
-      wf.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (wf.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (wf.description || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 

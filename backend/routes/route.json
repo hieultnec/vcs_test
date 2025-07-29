@@ -421,6 +421,30 @@
           "controller": "bug",
           "function": "get_bug_reports",
           "methods": ["GET"]
+        },
+        {
+          "api_name": "codex/repos",
+          "controller": "codex",
+          "function": "get_repos",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "codex/run",
+          "controller": "codex",
+          "function": "run_codex",
+          "methods": ["POST"]
+        },
+        {
+          "rule": "/api/codex/task/<task_id>",
+          "endpoint": "get_codex_task",
+          "view_func": "codex.get_task",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "codex/task/submitted",
+          "controller": "codex",
+          "function": "get_task_submitted",
+          "methods": ["GET"]
         }
       ]
     }

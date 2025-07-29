@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Link, useParams } from "react-router-dom";
 import WorkflowTab from "@/components/project-detail/WorkflowTab";
+import BugTab from "@/components/project-detail/BugTab";
 import { useAppDispatch } from "@/hooks/useAppDispatch";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { fetchProject } from "@/store/slices/projectSlice";
@@ -104,11 +105,14 @@ const ProjectDetail = () => {
         {/* Main Tabs: Overview | Workflow */}
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="flex h-fit w-full items-center justify-start rounded-md bg-muted p-1 text-muted-foreground mb-4 overflow-x-auto">
-            <TabsTrigger value="overview" className="w-1/2 text-sm px-4 py-2">
+            <TabsTrigger value="overview" className="w-1/3 text-sm px-4 py-2">
               Overview
             </TabsTrigger>
-            <TabsTrigger value="workflow" className="w-1/2 text-sm px-4 py-2">
+            <TabsTrigger value="workflow" className="w-1/3 text-sm px-4 py-2">
               Workflow
+            </TabsTrigger>
+            <TabsTrigger value="bugs" className="w-1/3 text-sm px-4 py-2">
+              Bugs
             </TabsTrigger>
           </TabsList>
 
@@ -130,6 +134,10 @@ const ProjectDetail = () => {
 
           <TabsContent value="workflow">
             <WorkflowTab projectId={id} />
+          </TabsContent>
+
+          <TabsContent value="bugs">
+            <BugTab projectId={id || ''} />
           </TabsContent>
         </Tabs>
       </div>

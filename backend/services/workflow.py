@@ -143,17 +143,16 @@ def upload_file_to_dify(workflow_id, file_storage, mode=DifyMode.CLOUD):
         raise ValueError("API key not found in workflow")
     return upload_document(api_key, file_storage, workflow_id, mode)
 
-
-def run_dify_workflow(
+def run_dify_workflow_async(
     project_id,
     workflow_id,
     inputs,
     user="hieult",
-    response_mode="blocking",
+    response_mode="streaming",  # tránh blocking
     mode=DifyMode.CLOUD,
 ):
     """
-    Run a workflow via Dify API, save execution trace, and return Dify response and execution id.
+    Trigger Dify workflow asynchronously (streaming), save execution as pending.
     """
     workflow = get_workflow(workflow_id)
     if not workflow:
@@ -161,56 +160,48 @@ def run_dify_workflow(
     api_key = workflow.get("api_key")
     if not api_key:
         raise ValueError("API key not found in workflow")
+
     try:
+        # Step 1: Gọi Dify để lấy task_id
         response_json = run_workflow_with_dify(
             api_key, inputs, user, response_mode, workflow.get("mode")
         )
-        # Save execution record
-        status = response_json.get("data", {}).get(
-            "status", "succeeded" if response_json.get("data") else "unknown"
-        )
-        outputs = response_json.get("data", {}).get("outputs")
-        error = response_json.get("error") or None
-        total_steps = response_json.get("data", {}).get("total_steps")
-        total_tokens = response_json.get("data", {}).get("total_tokens")
+
+        task_id = response_json.get("task_id")
+        workflow_run_id = response_json.get("workflow_run_id") or response_json.get("data", {}).get("id")
+
+        # Step 2: Tạo execution pending
         execution = create_execution(
             workflow_id=workflow_id,
             project_id=project_id,
-            status=status,
+            status="pending",
             inputs=inputs,
-            outputs=outputs,
-            error=error,
-            total_steps=total_steps,
-            total_tokens=total_tokens,
         )
-        execution_id = execution.get("id") if isinstance(execution, dict) else None
-        # --- NEW: Auto-save test scenarios from workflow output ---
-        if status == "succeeded" and outputs and outputs.get("structured_output"):
-            try:
-                ScenarioService.save_scenarios_from_workflow(
-                    project_id,
-                    {"structured_output": outputs["structured_output"]},
-                    execution_id,
-                )
-            except Exception as e:
-                logger.error(
-                    f"Error auto-saving test scenarios from workflow output: {str(e)}"
-                )
-        return {"dify_response": response_json, "execution_id": execution_id}
+        execution_id = execution.get("id")
+
+        # Step 3: Lưu task_id và workflow_run_id (có thể cập nhật vào DB nếu cần)
+        if execution_id and (task_id or workflow_run_id):
+            from utils import database
+            database.update_workflow_execution(execution_id, {
+                "task_id": task_id,
+                "workflow_run_id": workflow_run_id,
+            })
+
+        return {
+            "execution_id": execution_id,
+            "dify_response": response_json,
+        }
     except Exception as e:
-        logger.error(f"Error running Dify workflow: {str(e)}")
+        logger.error(f"Error triggering Dify workflow: {str(e)}")
         execution = create_execution(
             workflow_id=workflow_id,
             project_id=project_id,
             status="failed",
             inputs=inputs,
-            outputs=None,
             error=str(e),
-            total_steps=None,
-            total_tokens=None,
         )
-        execution_id = execution.get("id") if isinstance(execution, dict) else None
         raise
+
 
 
 def get_workflow_execution_detail(execution_id):

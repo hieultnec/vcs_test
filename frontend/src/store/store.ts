@@ -5,6 +5,7 @@ import testCaseSlice from './slices/testCaseSlice';
 import testRunSlice from './slices/testRunSlice';
 import workflowSlice from './slices/workflowSlice';
 import executionsReducer from './slices/executionSlice';
+import bugReducer from './slices/bugSlice';
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     testRuns: testRunSlice,
     workflows: workflowSlice,
     executions: executionsReducer,
+    bugs: bugReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

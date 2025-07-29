@@ -26,10 +26,14 @@ RUN pip install -e lavague-integrations/contexts/lavague-contexts-gemini
 #RUN pip install lavague-contexts-gemini
 
 
-WORKDIR /app
-ADD ../backend ./
+WORKDIR /
+ADD ../backend /backend
+WORKDIR /backend
 
 RUN pip install -r requirements.txt
 
+ENV PYTHONPATH=/:/backend:${PYTHONPATH}
+WORKDIR /backend
+
 EXPOSE 5000
-ENTRYPOINT ["python", "app.py"]
+ENTRYPOINT ["python", "/backend/app.py"]

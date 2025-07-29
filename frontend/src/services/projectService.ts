@@ -25,12 +25,18 @@ export interface Project {
   uploaded_documents?: ProjectDocument[];
 }
 
+export interface DifyApiKeyConfig {
+  key: string;
+  mode: 'cloud' | 'self_hosted';
+}
+
 export interface CreateProjectData {
   name: string;
   description?: string;
   owner?: string;
   is_current?: boolean;
   file?: File[];
+  dify_api_keys?: DifyApiKeyConfig[];
 }
 
 export interface ApiResponse<T> {
@@ -84,9 +90,9 @@ export const projectService = {
   },
 
   // Create project with JSON payload
-  async createProject(data: CreateProjectData & { dify_api_keys?: string[] }): Promise<Project> {
+  async createProject(data: CreateProjectData): Promise<Project> {
     try {
-      const payload: Partial<CreateProjectData & { dify_api_keys?: string[] }> = {
+      const payload: Partial<CreateProjectData> = {
         name: data.name,
       };
       if (data.description) payload.description = data.description;

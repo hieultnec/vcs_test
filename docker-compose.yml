@@ -13,6 +13,7 @@ services:
     env_file:
       - .env
     volumes:
+      - ./backend:/app
       - lagavue_backend_projects:/app/projects
     environment:
       - FLASK_APP=app.py
@@ -30,19 +31,19 @@ services:
     volumes:
       - lagavue_mongodb_data:/data/db
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: ../dockers/Dockerfile.frontend
-    depends_on:
-      - backend
-    ports:
-      - "8080:8080"
-    networks:
-      - atc_network
-      - sugoi_network
-    environment:
-      - VITE_API_BASE_URL=http://localhost:5000
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: ../dockers/Dockerfile.frontend
+  #   depends_on:
+  #     - backend
+  #   ports:
+  #     - "8080:8080"
+  #   networks:
+  #     - atc_network
+  #     - sugoi_network
+  #   environment:
+  #     - VITE_API_BASE_URL=http://localhost:5000
 
 networks:
   atc_network:

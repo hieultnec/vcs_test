@@ -1,344 +1,428 @@
 {
-   "prefixes":[
-      {
-         "prefix":"/api",
-         "routes":[
-            {
-               "api_name": "ping",
-               "controller":"ping",
-               "function":"ping",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "projects",
-               "controller":"project",
-               "function":"list",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "project/create",
-               "controller":"project",
-               "function":"create",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "project/get",
-               "controller":"project",
-               "function":"get",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "project/update",
-               "controller":"project",
-               "function":"update",
-               "methods": ["PUT"]
-            },
-            {
-               "api_name": "project/delete",
-               "controller":"project",
-               "function":"delete",
-               "methods": ["DELETE"]
-            },
-            {
-               "api_name": "task/create",
-               "controller":"task",
-               "function":"create",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "task/get",
-               "controller":"task",
-               "function":"get",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "task/update",
-               "controller":"task",
-               "function":"update",
-               "methods": ["PUT"]
-            },
-            {
-               "api_name": "task/delete",
-               "controller":"task",
-               "function":"delete",
-               "methods": ["DELETE"]
-            },
-            {
-               "api_name": "task/execute",
-               "controller":"task",
-               "function":"ex_task",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "task/screenshots",
-               "controller":"task",
-               "function":"get_screenshots",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "task/screenshot",
-               "controller":"task",
-               "function":"get_screenshot",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "project/document/upload",
-               "controller": "document",
-               "function": "upload_document",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "project/document/list",
-               "controller": "document",
-               "function": "get_documents",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "project/document/delete",
-               "controller": "document",
-               "function": "delete_document",
-               "methods": ["DELETE"]
-            },
-            {
-               "api_name": "project/document/detail",
-               "controller": "document",
-               "function": "get_document_detail",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "project/document/download",
-               "controller": "document",
-               "function": "download_document",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "project/document/serve",
-               "controller": "document",
-               "function": "serve_document",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "scenario/save",
-               "controller": "scenario",
-               "function": "save_scenarios",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "scenario/save_from_workflow",
-               "controller": "scenario",
-               "function": "save_scenarios_from_workflow",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "scenario/create",
-               "controller": "scenario",
-               "function": "create_scenario",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "scenario/list",
-               "controller": "scenario",
-               "function": "get_scenarios",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "scenario/update",
-               "controller": "scenario",
-               "function": "update_scenario",
-               "methods": ["PUT"]
-            },
-            {
-               "api_name": "scenario/delete",
-               "controller": "scenario",
-               "function": "delete_scenario",
-               "methods": ["DELETE"]
-            },
-            {
-               "api_name": "test_case/save",
-               "controller": "test_case",
-               "function": "save_test_cases",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "test_case/list",
-               "controller": "test_case",
-               "function": "get_test_cases",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "test_case/create",
-               "controller": "test_case",
-               "function": "create_test_case",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "test_case/update",
-               "controller": "test_case",
-               "function": "update_test_case",
-               "methods": ["PUT"]
-            },
-            {
-               "api_name": "test_case/delete",
-               "controller": "test_case",
-               "function": "delete_test_case",
-               "methods": ["DELETE"]
-            },
-            {
-               "api_name": "test_case/get",
-               "controller": "test_case",
-               "function": "get_test_case",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "test_run/record",
-               "controller": "test_run",
-               "function": "record_test_run",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "test_run/list_by_case",
-               "controller": "test_run",
-               "function": "get_test_runs_by_case",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "test_run/latest",
-               "controller": "test_run",
-               "function": "get_latest_test_run",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "test_run/get",
-               "controller": "test_run",
-               "function": "get_test_run",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "test_run/update",
-               "controller": "test_run",
-               "function": "update_test_run",
-               "methods": ["PUT"]
-            },
-            {
-               "api_name": "test_run/delete",
-               "controller": "test_run",
-               "function": "delete_test_run",
-               "methods": ["DELETE"]
-            },
-            {
-               "api_name": "test_run/list_by_scenario",
-               "controller": "test_run",
-               "function": "get_test_runs_by_scenario",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "test_run/list_by_project",
-               "controller": "test_run",
-               "function": "get_test_runs_by_project",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "workflow/config",
-               "controller": "config",
-               "function": "get_config",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "workflow/config",
-               "controller": "config",
-               "function": "save_config",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "workflow/execute",
-               "controller": "workflow",
-               "function": "execute_workflow",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "workflow/execution",
-               "controller": "workflow",
-               "function": "get_execution_status",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "workflow/executions",
-               "controller": "workflow",
-               "function": "get_execution_history",
-               "methods": ["GET"]
-            },
-            {
-               "api_name": "workflow/execution/cancel",
-               "controller": "workflow",
-               "function": "cancel_execution",
-               "methods": ["POST"]
-            },
-            {
-               "api_name": "workflow/templates",
-               "controller": "workflow",
-               "function": "get_templates",
-               "methods": ["GET"]
-            },
-            {
-               "path": "/api/workflow/template",
-               "methods": ["GET", "POST"],
-               "handler": "controllers.workflow.workflow_template"
-            },
-            {
-               "rule": "/api/workflow/create",
-               "endpoint": "create_workflow",
-               "view_func": "workflow.create_workflow",
-               "methods": ["POST"]
-            },
-            {
-               "rule": "/api/workflow/get",
-               "endpoint": "get_workflow",
-               "view_func": "workflow.get_workflow",
-               "methods": ["GET"]
-            },
-            {
-               "rule": "/api/workflow/update",
-               "endpoint": "update_workflow",
-               "view_func": "workflow.update_workflow",
-               "methods": ["POST"]
-            },
-            {
-               "rule": "/api/workflow/delete",
-               "endpoint": "delete_workflow",
-               "view_func": "workflow.delete_workflow",
-               "methods": ["DELETE"]
-            },
-            {
-               "rule": "/api/workflow/list",
-               "endpoint": "list_workflows",
-               "view_func": "workflow.list_workflows",
-               "methods": ["GET"]
-            },
-            {
-               "rule": "/api/workflow/execute",
-               "endpoint": "execute_workflow",
-               "view_func": "workflow.execute_workflow",
-               "methods": ["POST"]
-            },
-            {
-               "rule": "/api/workflow/execution/history",
-               "endpoint": "get_execution_history",
-               "view_func": "workflow.get_execution_history",
-               "methods": ["GET"]
-            },
-            {
-               "rule": "/api/workflow/execution/get",
-               "endpoint": "get_execution",
-               "view_func": "workflow.get_execution",
-               "methods": ["GET"]
-            },
-            {
-               "rule": "/api/workflow/sync_workflow",
-               "endpoint": "sync_workflow",
-               "view_func": "workflow.sync_workflow",
-               "methods": ["GET"]
-            }
-         ]
-      }
-   ]
+  "prefixes": [
+    {
+      "prefix": "/api",
+      "routes": [
+        {
+          "api_name": "ping",
+          "controller": "ping",
+          "function": "ping",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "projects",
+          "controller": "project",
+          "function": "list",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "project/create",
+          "controller": "project",
+          "function": "create",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "project/get",
+          "controller": "project",
+          "function": "get",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "project/update",
+          "controller": "project",
+          "function": "update",
+          "methods": ["PUT"]
+        },
+        {
+          "api_name": "project/delete",
+          "controller": "project",
+          "function": "delete",
+          "methods": ["DELETE"]
+        },
+        {
+          "api_name": "task/create",
+          "controller": "task",
+          "function": "create",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "task/get",
+          "controller": "task",
+          "function": "get",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "task/update",
+          "controller": "task",
+          "function": "update",
+          "methods": ["PUT"]
+        },
+        {
+          "api_name": "task/delete",
+          "controller": "task",
+          "function": "delete",
+          "methods": ["DELETE"]
+        },
+        {
+          "api_name": "task/execute",
+          "controller": "task",
+          "function": "ex_task",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "task/screenshots",
+          "controller": "task",
+          "function": "get_screenshots",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "task/screenshot",
+          "controller": "task",
+          "function": "get_screenshot",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "project/document/upload",
+          "controller": "document",
+          "function": "upload_document",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "project/document/list",
+          "controller": "document",
+          "function": "get_documents",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "project/document/delete",
+          "controller": "document",
+          "function": "delete_document",
+          "methods": ["DELETE"]
+        },
+        {
+          "api_name": "project/document/detail",
+          "controller": "document",
+          "function": "get_document_detail",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "project/document/download",
+          "controller": "document",
+          "function": "download_document",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "project/document/serve",
+          "controller": "document",
+          "function": "serve_document",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "scenario/save",
+          "controller": "scenario",
+          "function": "save_scenarios",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "scenario/save_from_workflow",
+          "controller": "scenario",
+          "function": "save_scenarios_from_workflow",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "scenario/create",
+          "controller": "scenario",
+          "function": "create_scenario",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "scenario/list",
+          "controller": "scenario",
+          "function": "get_scenarios",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "scenario/update",
+          "controller": "scenario",
+          "function": "update_scenario",
+          "methods": ["PUT"]
+        },
+        {
+          "api_name": "scenario/delete",
+          "controller": "scenario",
+          "function": "delete_scenario",
+          "methods": ["DELETE"]
+        },
+        {
+          "api_name": "test_case/save",
+          "controller": "test_case",
+          "function": "save_test_cases",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "test_case/list",
+          "controller": "test_case",
+          "function": "get_test_cases",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "test_case/create",
+          "controller": "test_case",
+          "function": "create_test_case",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "test_case/update",
+          "controller": "test_case",
+          "function": "update_test_case",
+          "methods": ["PUT"]
+        },
+        {
+          "api_name": "test_case/delete",
+          "controller": "test_case",
+          "function": "delete_test_case",
+          "methods": ["DELETE"]
+        },
+        {
+          "api_name": "test_case/get",
+          "controller": "test_case",
+          "function": "get_test_case",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "test_run/record",
+          "controller": "test_run",
+          "function": "record_test_run",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "test_run/list_by_case",
+          "controller": "test_run",
+          "function": "get_test_runs_by_case",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "test_run/latest",
+          "controller": "test_run",
+          "function": "get_latest_test_run",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "test_run/get",
+          "controller": "test_run",
+          "function": "get_test_run",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "test_run/update",
+          "controller": "test_run",
+          "function": "update_test_run",
+          "methods": ["PUT"]
+        },
+        {
+          "api_name": "test_run/delete",
+          "controller": "test_run",
+          "function": "delete_test_run",
+          "methods": ["DELETE"]
+        },
+        {
+          "api_name": "test_run/list_by_scenario",
+          "controller": "test_run",
+          "function": "get_test_runs_by_scenario",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "test_run/list_by_project",
+          "controller": "test_run",
+          "function": "get_test_runs_by_project",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "workflow/config",
+          "controller": "config",
+          "function": "get_config",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "workflow/config",
+          "controller": "config",
+          "function": "save_config",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "workflow/execute",
+          "controller": "workflow",
+          "function": "execute_workflow",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "workflow/execution",
+          "controller": "workflow",
+          "function": "get_execution_status",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "workflow/executions",
+          "controller": "workflow",
+          "function": "get_execution_history",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "workflow/execution/cancel",
+          "controller": "workflow",
+          "function": "cancel_execution",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "workflow/templates",
+          "controller": "workflow",
+          "function": "get_templates",
+          "methods": ["GET"]
+        },
+        {
+          "path": "/api/workflow/template",
+          "methods": ["GET", "POST"],
+          "handler": "controllers.workflow.workflow_template"
+        },
+        {
+          "rule": "/api/workflow/create",
+          "endpoint": "create_workflow",
+          "view_func": "workflow.create_workflow",
+          "methods": ["POST"]
+        },
+        {
+          "rule": "/api/workflow/get",
+          "endpoint": "get_workflow",
+          "view_func": "workflow.get_workflow",
+          "methods": ["GET"]
+        },
+        {
+          "rule": "/api/workflow/update",
+          "endpoint": "update_workflow",
+          "view_func": "workflow.update_workflow",
+          "methods": ["POST"]
+        },
+        {
+          "rule": "/api/workflow/delete",
+          "endpoint": "delete_workflow",
+          "view_func": "workflow.delete_workflow",
+          "methods": ["DELETE"]
+        },
+        {
+          "rule": "/api/workflow/list",
+          "endpoint": "list_workflows",
+          "view_func": "workflow.list_workflows",
+          "methods": ["GET"]
+        },
+        {
+          "rule": "/api/workflow/execute",
+          "endpoint": "execute_workflow",
+          "view_func": "workflow.execute_workflow",
+          "methods": ["POST"]
+        },
+        {
+          "rule": "/api/workflow/execution/history",
+          "endpoint": "get_execution_history",
+          "view_func": "workflow.get_execution_history",
+          "methods": ["GET"]
+        },
+        {
+          "rule": "/api/workflow/execution/get",
+          "endpoint": "get_execution",
+          "view_func": "workflow.get_execution",
+          "methods": ["GET"]
+        },
+        {
+          "rule": "/api/workflow/sync_workflow",
+          "endpoint": "sync_workflow",
+          "view_func": "workflow.sync_workflow",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "bug/create",
+          "controller": "bug",
+          "function": "create_bug",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "bug/list",
+          "controller": "bug",
+          "function": "get_bugs",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "bug/get",
+          "controller": "bug",
+          "function": "get_bug",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "bug/update",
+          "controller": "bug",
+          "function": "update_bug",
+          "methods": ["PUT"]
+        },
+        {
+          "api_name": "bug/delete",
+          "controller": "bug",
+          "function": "delete_bug",
+          "methods": ["DELETE"]
+        },
+        {
+          "api_name": "bug/fix/create",
+          "controller": "bug",
+          "function": "create_bug_fix",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "bug/fix/verify",
+          "controller": "bug",
+          "function": "verify_bug_fix",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "bug/fix/list",
+          "controller": "bug",
+          "function": "get_bug_fixes",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "bug/history/create",
+          "controller": "bug",
+          "function": "create_bug_history",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "bug/history",
+          "controller": "bug",
+          "function": "get_bug_history",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "bug/test/execute",
+          "controller": "bug",
+          "function": "execute_bug_test",
+          "methods": ["POST"]
+        },
+        {
+          "api_name": "bug/executions",
+          "controller": "bug",
+          "function": "get_bug_executions",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "execution/bugs",
+          "controller": "bug",
+          "function": "get_execution_bugs",
+          "methods": ["GET"]
+        },
+        {
+          "api_name": "bug/report",
+          "controller": "bug",
+          "function": "get_bug_reports",
+          "methods": ["GET"]
+        }
+      ]
+    }
+  ]
 }

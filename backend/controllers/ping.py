@@ -7,4 +7,4 @@ logger = logging.getLogger('ping_controller')
 def ping():
     """Simple health check endpoint."""
     logger.debug("Received ping request")
-    return "pong"
+    return {"status": 200, "message": "pong"}

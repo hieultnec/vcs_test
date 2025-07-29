@@ -1,6 +1,11 @@
 import uuid
 import os
 from datetime import datetime
+from enum import Enum
+
+class DifyMode(Enum):
+    CLOUD = "CLOUD"
+    LOCAL = "LOCAL"
 from utils import database
 from utils.logger import logger
 
@@ -13,8 +18,6 @@ def create(data):
     Args:
         data (dict): Project data containing name, description, version, owner, status, (optional) dify_api_keys
     """
-    from flask import request
-    from services.config import save_config
     from services.workflow import create_workflow
 
     logger.info("Creating new project with data: %s", data)
@@ -44,16 +47,18 @@ def create(data):
     database.create_project(project_data)
     logger.info("Project created successfully with ID: %s", project_id)
 
-    # Nếu có truyền dify_api_keys, tự động tạo workflow cho từng key
-    api_keys = data.get("dify_api_keys", [])
-    if isinstance(api_keys, str):
-        # Split by comma and strip whitespace for each key
-        api_keys = [k.strip() for k in api_keys.split(",") if k.strip()]
-    logger.info(f"API keys to process: {api_keys}")
+    # Nếu có truyền dify_api_keys, tự động tạo workflow cho từng cấu hình
+    api_configs = data.get("dify_api_keys", [])
+    if isinstance(api_configs, str):
+        # Nếu là chuỗi, chuyển đổi thành danh sách các object với mode mặc định
+        api_configs = [{"key": k.strip(), "mode": DifyMode.CLOUD} for k in api_configs.split(",") if k.strip()]
+    logger.info(f"API configurations to process: {api_configs}")
     created_workflows = []
-    for api_key in api_keys:
+    for config in api_configs:
         try:
-            wf = create_workflow(project_id, api_key)
+            api_key = config.get("key")
+            mode = config.get("mode", DifyMode.CLOUD)
+            wf = create_workflow(project_id, api_key, mode)
             created_workflows.append(wf)
         except Exception as e:
             logger.error(

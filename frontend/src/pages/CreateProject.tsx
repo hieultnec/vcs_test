@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { projectService, CreateProjectData } from '@/services/projectService';
+import { projectService, CreateProjectData, DifyApiKeyConfig } from '@/services/projectService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface WorkflowVariable {
@@ -37,7 +37,7 @@ const CreateProject = () => {
   const [variables, setVariables] = useState<WorkflowVariable[]>([]);
 
   // Add state for Dify API keys
-  const [difyApiKeys, setDifyApiKeys] = useState<string[]>(['']);
+  const [difyApiKeys, setDifyApiKeys] = useState<Array<{ key: string; mode: 'cloud' | 'self_hosted' }>>([{ key: '', mode: 'cloud' }]);
 
   const totalSteps = 2;
 
@@ -97,13 +97,13 @@ const CreateProject = () => {
   };
 
   // Handler to update a specific API key
-  const handleDifyApiKeyChange = (idx: number, value: string) => {
-    setDifyApiKeys(keys => keys.map((k, i) => i === idx ? value : k));
+  const handleDifyApiKeyChange = (idx: number, field: 'key' | 'mode', value: string) => {
+    setDifyApiKeys(keys => keys.map((k, i) => i === idx ? { ...k, [field]: value } : k));
   };
 
   // Handler to add a new API key input
   const addDifyApiKey = () => {
-    setDifyApiKeys(keys => [...keys, '']);
+    setDifyApiKeys(keys => [...keys, { key: '', mode: 'cloud' }]);
   };
 
   // Handler to remove an API key input
@@ -122,15 +122,18 @@ const CreateProject = () => {
       return;
     }
     try {
-      const createProjectData: CreateProjectData & { dify_api_keys?: string[] } = {
+      const createProjectData: CreateProjectData & { dify_api_keys?: DifyApiKeyConfig[] } = {
         name: formData.name,
         description: formData.description || undefined,
         owner: formData.owner,
         is_current: true,
       };
-      const filteredKeys = difyApiKeys.map(k => k.trim()).filter(Boolean);
+      const filteredKeys = difyApiKeys.filter(k => k.key.trim());
       if (filteredKeys.length > 0) {
-        createProjectData.dify_api_keys = filteredKeys;
+        createProjectData.dify_api_keys = filteredKeys.map(k => ({
+          key: k.key.trim(),
+          mode: k.mode
+        }));
       }
       const createdProject = await projectService.createProject(createProjectData);
       toast({
@@ -305,10 +308,22 @@ const CreateProject = () => {
                 <Input
                   type="text"
                   placeholder="Enter Dify API key"
-                  value={key}
-                  onChange={e => handleDifyApiKeyChange(idx, e.target.value)}
-                  className="w-full"
+                  value={key.key}
+                  onChange={e => handleDifyApiKeyChange(idx, 'key', e.target.value)}
+                  className="flex-1"
                 />
+                <Select 
+                  value={key.mode} 
+                  onValueChange={(value) => handleDifyApiKeyChange(idx, 'mode', value)}
+                >
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cloud">Cloud</SelectItem>
+                    <SelectItem value="self_hosted">Self Hosted</SelectItem>
+                  </SelectContent>
+                </Select>
                 {difyApiKeys.length > 1 && (
                   <Button type="button" variant="ghost" size="icon" onClick={() => removeDifyApiKey(idx)}>
                     <Trash2 className="w-4 h-4 text-red-500" />

@@ -1,4 +1,5 @@
 import requests
+from backend.services.scenario import ScenarioService
 from utils.logger import logger
 from enum import Enum
 
@@ -147,4 +148,46 @@ def get_workflow_logs(api_key, mode=DifyMode.CLOUD):
         raise
     except Exception as e:
         logger.error(f"Failed to fetch Dify workflow logs: {str(e)}")
+        raise
+
+
+def update_execution_from_dify_result(
+    api_key, workflow_run_id, execution_id, project_id=None, mode=DifyMode.CLOUD
+):
+    """
+    Fetch execution result from Dify using workflow_run_id and update execution.
+    """
+    try:
+        url = f"{get_dify_base_url(mode)}/workflows/run/{workflow_run_id}"
+        headers = get_headers(api_key)
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        result = response.json()
+
+        # Update execution in DB
+        update_data = {
+            "status": result.get("status", "unknown"),
+            "outputs": result.get("outputs"),
+            "error": result.get("error"),
+            "total_steps": result.get("total_steps"),
+            "total_tokens": result.get("total_tokens"),
+        }
+
+        from utils import database
+
+        database.update_workflow_execution(execution_id, update_data)
+
+        # Auto-save structured output nếu có
+        if (
+            result.get("status") == "succeeded"
+            and result.get("outputs")
+            and result["outputs"].get("structured_output")
+        ):
+            ScenarioService.save_scenarios_from_workflow(
+                project_id,
+                {"structured_output": result["outputs"]["structured_output"]},
+                execution_id,
+            )
+    except Exception as e:
+        logger.error(f"Failed to update execution result from Dify: {str(e)}")
         raise

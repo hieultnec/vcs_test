@@ -934,3 +934,271 @@ def save_workflow_config(config):
     except Exception as e:
         logger.error(f"Error saving workflow config: {e}")
         raise e
+
+
+# Bug Management Database Functions
+
+def create_bug(bug_data):
+    """Create a new bug in the database."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        result = db.bugs.insert_one(bug_data)
+        logger.info(f"Bug created with ID: {bug_data['bug_id']}")
+        return result.inserted_id
+    except Exception as e:
+        logger.error(f"Error creating bug: {e}")
+        raise e
+
+def get_bug(bug_id):
+    """Get a single bug by bug_id."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        bug = db.bugs.find_one({'bug_id': bug_id}, {'_id': 0})
+        return bug
+    except Exception as e:
+        logger.error(f"Error getting bug {bug_id}: {e}")
+        return None
+
+def get_bugs_by_project(project_id, filters=None):
+    """Get all bugs for a project with optional filters."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        
+        query = {'project_id': project_id}
+        if filters:
+            query.update(filters)
+        
+        bugs = list(db.bugs.find(query, {'_id': 0}).sort('created_at', -1))
+        return bugs
+    except Exception as e:
+        logger.error(f"Error getting bugs for project {project_id}: {e}")
+        return []
+
+def update_bug(bug_id, update_data):
+    """Update a bug."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        update_data['updated_at'] = datetime.utcnow()
+        
+        result = db.bugs.update_one(
+            {'bug_id': bug_id},
+            {'$set': update_data}
+        )
+        
+        if result.modified_count > 0:
+            return db.bugs.find_one({'bug_id': bug_id}, {'_id': 0})
+        return None
+    except Exception as e:
+        logger.error(f"Error updating bug {bug_id}: {e}")
+        return None
+
+def delete_bug(bug_id):
+    """Delete a bug and related records."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        
+        # Delete related records first
+        db.bug_executions.delete_many({'bug_id': bug_id})
+        db.bug_histories.delete_many({'bug_id': bug_id})
+        db.bug_fixes.delete_many({'bug_id': bug_id})
+        
+        # Delete the bug
+        result = db.bugs.delete_one({'bug_id': bug_id})
+        return result.deleted_count > 0
+    except Exception as e:
+        logger.error(f"Error deleting bug {bug_id}: {e}")
+        return False
+
+def create_bug_fix(fix_data):
+    """Create a bug fix record."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        result = db.bug_fixes.insert_one(fix_data)
+        logger.info(f"Bug fix created with ID: {fix_data['fix_id']}")
+        return result.inserted_id
+    except Exception as e:
+        logger.error(f"Error creating bug fix: {e}")
+        raise e
+
+def get_bug_fixes(bug_id):
+    """Get all fixes for a bug."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        fixes = list(db.bug_fixes.find({'bug_id': bug_id}, {'_id': 0}).sort('fixed_at', -1))
+        return fixes
+    except Exception as e:
+        logger.error(f"Error getting bug fixes for {bug_id}: {e}")
+        return []
+
+def update_bug_fix(fix_id, update_data):
+    """Update a bug fix."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        
+        result = db.bug_fixes.update_one(
+            {'fix_id': fix_id},
+            {'$set': update_data}
+        )
+        
+        if result.modified_count > 0:
+            return db.bug_fixes.find_one({'fix_id': fix_id}, {'_id': 0})
+        return None
+    except Exception as e:
+        logger.error(f"Error updating bug fix {fix_id}: {e}")
+        return None
+
+def create_bug_history(history_data):
+    """Create a bug history record."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        result = db.bug_histories.insert_one(history_data)
+        logger.info(f"Bug history created with ID: {history_data['history_id']}")
+        return result.inserted_id
+    except Exception as e:
+        logger.error(f"Error creating bug history: {e}")
+        raise e
+
+def get_bug_history(bug_id):
+    """Get history for a bug."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        history = list(db.bug_histories.find({'bug_id': bug_id}, {'_id': 0}).sort('captured_at', -1))
+        return history
+    except Exception as e:
+        logger.error(f"Error getting bug history for {bug_id}: {e}")
+        return []
+
+def create_bug_execution(execution_data):
+    """Create or update a bug execution record."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        
+        # Use upsert to handle duplicate executions
+        result = db.bug_executions.update_one(
+            {
+                'execution_id': execution_data['execution_id'],
+                'bug_id': execution_data['bug_id']
+            },
+            {'$set': execution_data},
+            upsert=True
+        )
+        
+        logger.info(f"Bug execution recorded for bug {execution_data['bug_id']} in execution {execution_data['execution_id']}")
+        return result.upserted_id or True
+    except Exception as e:
+        logger.error(f"Error creating bug execution: {e}")
+        raise e
+
+def get_bug_executions(bug_id):
+    """Get all executions for a bug."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        executions = list(db.bug_executions.find({'bug_id': bug_id}, {'_id': 0}).sort('executed_at', -1))
+        return executions
+    except Exception as e:
+        logger.error(f"Error getting bug executions for {bug_id}: {e}")
+        return []
+
+def get_execution_bugs(execution_id):
+    """Get all bugs tested in an execution."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        bugs = list(db.bug_executions.find({'execution_id': execution_id}, {'_id': 0}))
+        return bugs
+    except Exception as e:
+        logger.error(f"Error getting execution bugs for {execution_id}: {e}")
+        return []
+
+def create_bug_from_execution_failure(execution_id, task_id, project_id, failure_info):
+    """Create a bug automatically from execution failure."""
+    try:
+        import uuid
+        
+        bug_id = str(uuid.uuid4())
+        now = datetime.utcnow()
+        
+        bug_data = {
+            'bug_id': bug_id,
+            'project_id': project_id,
+            'task_id': task_id,
+            'scenario_id': failure_info.get('scenario_id'),
+            'summary': f"Execution failure in task {task_id}",
+            'description': failure_info.get('error_message', 'Execution failed'),
+            'status': 'open',
+            'severity': failure_info.get('severity', 'medium'),
+            'created_at': now,
+            'updated_at': now,
+            'created_by': 'system',
+            'environment': failure_info.get('environment', {})
+        }
+        
+        create_bug(bug_data)
+        
+        # Create initial bug execution record
+        execution_data = {
+            'execution_id': execution_id,
+            'bug_id': bug_id,
+            'status': 'failed',
+            'notes': 'Bug created from execution failure',
+            'executed_by': 'system',
+            'executed_at': now
+        }
+        create_bug_execution(execution_data)
+        
+        logger.info(f"Bug {bug_id} created automatically from execution failure")
+        return bug_data
+        
+    except Exception as e:
+        logger.error(f"Error creating bug from execution failure: {e}")
+        raise e
+
+# Index creation for better performance
+def create_bug_indexes():
+    """Create indexes for bug collections."""
+    try:
+        client = get_connection()
+        db = client[MONGODB_DATABASE]
+        
+        # Bugs collection indexes
+        db.bugs.create_index([('project_id', 1), ('status', 1)])
+        db.bugs.create_index([('project_id', 1), ('severity', 1)])
+        db.bugs.create_index([('task_id', 1)])
+        db.bugs.create_index([('scenario_id', 1)])
+        db.bugs.create_index([('created_at', -1)])
+        db.bugs.create_index([('bug_id', 1)], unique=True)
+        
+        # Bug fixes collection indexes
+        db.bug_fixes.create_index([('bug_id', 1)])
+        db.bug_fixes.create_index([('fix_id', 1)], unique=True)
+        db.bug_fixes.create_index([('fixed_by', 1)])
+        db.bug_fixes.create_index([('verified_by', 1)])
+        
+        # Bug histories collection indexes
+        db.bug_histories.create_index([('bug_id', 1)])
+        db.bug_histories.create_index([('history_id', 1)], unique=True)
+        db.bug_histories.create_index([('captured_at', -1)])
+        
+        # Bug executions collection indexes
+        db.bug_executions.create_index([('bug_id', 1)])
+        db.bug_executions.create_index([('execution_id', 1)])
+        db.bug_executions.create_index([('execution_id', 1), ('bug_id', 1)], unique=True)
+        db.bug_executions.create_index([('executed_at', -1)])
+        
+        logger.info("Bug collection indexes created successfully")
+        
+    except Exception as e:
+        logger.error(f"Error creating bug indexes: {e}")
+        raise e        

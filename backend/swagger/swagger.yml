@@ -56,8 +56,18 @@ paths:
               dify_api_keys:
                 type: array
                 items:
-                  type: string
-                description: List of Dify API keys. Accepts an array of strings or a comma-separated string.
+                  type: object
+                  required: [key]
+                  properties:
+                    key:
+                      type: string
+                      description: The Dify API key
+                    mode:
+                      type: string
+                      enum: [cloud, self_hosted]
+                      default: cloud
+                      description: The mode of Dify API (cloud or self-hosted)
+                description: List of Dify API configurations with key and mode.
       responses:
         "200":
           description: Successful operation
@@ -573,6 +583,310 @@ paths:
         "500":
           description: Internal server error
 
+  /api/bug/create:
+    post:
+      summary: Create a new bug
+      tags: [Bug]
+      operationId: controllers.bug.create_bug
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [project_id, summary, description, severity]
+            properties:
+              project_id:
+                type: string
+              task_id:
+                type: string
+              scenario_id:
+                type: string
+              summary:
+                type: string
+              description:
+                type: string
+              severity:
+                type: string
+              status:
+                type: string
+                default: open
+              created_by:
+                type: string
+                default: system
+              environment:
+                type: object
+      responses:
+        "200":
+          description: Bug created successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: "#/definitions/Bug"
+        "400":
+          description: Bad request - missing required fields
+        "500":
+          description: Internal server error
+
+  /api/bug/list:
+    get:
+      summary: Get all bugs for a project
+      tags: [Bug]
+      operationId: controllers.bug.get_bugs
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          type: string
+        - name: status
+          in: query
+          type: string
+        - name: severity
+          in: query
+          type: string
+        - name: task_id
+          in: query
+          type: string
+        - name: scenario_id
+          in: query
+          type: string
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: "#/definitions/Bug"
+        "400":
+          description: Bad request - missing project_id
+        "500":
+          description: Internal server error
+
+  /api/bug/get:
+    get:
+      summary: Get bug details
+      tags: [Bug]
+      operationId: controllers.bug.get_bug
+      parameters:
+        - name: bug_id
+          in: query
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: "#/definitions/Bug"
+        "400":
+          description: Bad request - missing bug_id
+        "404":
+          description: Bug not found
+        "500":
+          description: Internal server error
+
+  /api/bug/update:
+    put:
+      summary: Update bug information
+      tags: [Bug]
+      operationId: controllers.bug.update_bug
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [bug_id]
+            properties:
+              bug_id:
+                type: string
+              summary:
+                type: string
+              description:
+                type: string
+              status:
+                type: string
+              severity:
+                type: string
+      responses:
+        "200":
+          description: Bug updated successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: "#/definitions/Bug"
+        "400":
+          description: Bad request - missing bug_id
+        "404":
+          description: Bug not found
+        "500":
+          description: Internal server error
+
+  /api/bug/delete:
+    delete:
+      summary: Delete a bug
+      tags: [Bug]
+      operationId: controllers.bug.delete_bug
+      parameters:
+        - name: bug_id
+          in: query
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Bug deleted successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+        "400":
+          description: Bad request - missing bug_id
+        "404":
+          description: Bug not found
+        "500":
+          description: Internal server error
+
+  /api/bug/fix/create:
+    post:
+      summary: Create a bug fix record
+      tags: [Bug]
+      operationId: controllers.bug.create_bug_fix
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [bug_id, fix_description, fixed_by]
+            properties:
+              bug_id:
+                type: string
+              fix_description:
+                type: string
+              fixed_by:
+                type: string
+              fix_status:
+                type: string
+                default: pending
+      responses:
+        "200":
+          description: Bug fix created successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: "#/definitions/BugFix"
+        "400":
+          description: Bad request - missing required fields
+        "500":
+          description: Internal server error
+
+  /api/bug/fix/verify:
+    post:
+      summary: Verify a bug fix
+      tags: [Bug]
+      operationId: controllers.bug.verify_bug_fix
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [fix_id, verified_by]
+            properties:
+              fix_id:
+                type: string
+              verified_by:
+                type: string
+              fix_status:
+                type: string
+                default: verified
+      responses:
+        "200":
+          description: Bug fix verified successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                $ref: "#/definitions/BugFix"
+        "400":
+          description: Bad request - missing required fields
+        "404":
+          description: Bug fix not found
+        "500":
+          description: Internal server error
+
+  /api/bug/fix/list:
+    get:
+      summary: Get all fixes for a bug
+      tags: [Bug]
+      operationId: controllers.bug.get_bug_fixes
+      parameters:
+        - name: bug_id
+          in: query
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: array
+                items:
+                  $ref: "#/definitions/BugFix"
+        "400":
+          description: Bad request - missing bug_id
+        "500":
+          description: Internal server error
+
   /api/workflow/upload_document:
     post:
       summary: Upload document to workflow
@@ -693,6 +1007,7 @@ paths:
         "500":
           description: Internal server error
 
+
 definitions:
   Project:
     type: object
@@ -759,11 +1074,65 @@ definitions:
     properties:
       id:
         type: string
+      project_id:
+        type: string
       workflow_id:
         type: string
       status:
         type: string
-      started_at:
+      created_at:
         type: string
-      finished_at:
+        format: date-time
+      updated_at:
         type: string
+        format: date-time
+
+  Bug:
+    type: object
+    properties:
+      id:
+        type: string
+      project_id:
+        type: string
+      task_id:
+        type: string
+      scenario_id:
+        type: string
+      summary:
+        type: string
+      description:
+        type: string
+      severity:
+        type: string
+      status:
+        type: string
+      created_by:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      environment:
+        type: object
+
+  BugFix:
+    type: object
+    properties:
+      id:
+        type: string
+      bug_id:
+        type: string
+      fix_description:
+        type: string
+      fixed_by:
+        type: string
+      fix_status:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time

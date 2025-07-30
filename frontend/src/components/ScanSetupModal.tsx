@@ -7,43 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Play, GitBranch, Star, Lock, Bug, Shield, Code, Search, AlertCircle } from "lucide-react";
+import { Loader2, ExternalLink, GitBranch, Star, Lock, Bug, Shield, Code, Search, AlertCircle } from "lucide-react";
 import { RootState, AppDispatch } from '@/store/store';
 import { fetchRepos, runCodex, clearError } from '@/store/slices/codexSlice';
 import { CodexTask, RepoOption } from '@/services/codexService';
+import { scanPrompts, renderUserStoryTemplate, createCodexUrl, userStoryTemplate } from '../config/scanPrompts';
 
 
 
-const scanPrompts = [
-  {
-    id: 'security',
-    title: 'Security Vulnerabilities',
-    description: 'Scan for common security issues and vulnerabilities',
-    icon: Shield,
-    prompt: 'Analyze the codebase for security vulnerabilities including SQL injection, XSS, CSRF, authentication issues, and insecure data handling.'
-  },
-  {
-    id: 'bugs',
-    title: 'Bug Detection',
-    description: 'Find potential bugs and logical errors',
-    icon: Bug,
-    prompt: 'Identify potential bugs, logical errors, null pointer exceptions, memory leaks, and runtime errors in the codebase.'
-  },
-  {
-    id: 'quality',
-    title: 'Code Quality',
-    description: 'Analyze code quality and best practices',
-    icon: Code,
-    prompt: 'Review code quality, design patterns, maintainability, performance issues, and adherence to coding standards.'
-  },
-  {
-    id: 'comprehensive',
-    title: 'Comprehensive Scan',
-    description: 'Full analysis covering all aspects',
-    icon: Search,
-    prompt: 'Perform a comprehensive analysis covering security vulnerabilities, potential bugs, code quality issues, performance problems, and maintainability concerns.'
-  }
-];
+// scanPrompts is now imported from @/config/scanPrompts
 
 interface ScanSetupModalProps {
   isOpen: boolean;
@@ -62,9 +34,11 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
   const { repos, loading, error, currentTask } = useSelector((state: RootState) => state.codex);
   
   const [prompt, setPrompt] = useState(initialPrompt || "");
+  const [customPrompt, setCustomPrompt] = useState("");
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRepoSelector, setShowRepoSelector] = useState(false);
+  const [isUserStoryTemplate, setIsUserStoryTemplate] = useState(false);
 
   // Fetch repositories when modal opens
   useEffect(() => {
@@ -79,12 +53,31 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
       dispatch(clearError());
     }
     if (isOpen) {
-      setPrompt(initialPrompt || "");
+      // Default to first template (User Story) if no initial prompt
+      const defaultPrompt = initialPrompt || scanPrompts[0]?.prompt || "";
+      setPrompt(defaultPrompt);
+      setIsUserStoryTemplate(defaultPrompt === userStoryTemplate);
+      
+      // If User Story template is selected and we have initialPrompt,
+      // automatically fill it into customPrompt
+      if (defaultPrompt === userStoryTemplate && initialPrompt && initialPrompt.trim()) {
+        setCustomPrompt(initialPrompt.trim());
+      }
     }
   }, [isOpen, error, dispatch, initialPrompt]);
 
   const handlePromptSelect = (selectedPrompt: string) => {
     setPrompt(selectedPrompt);
+    setIsUserStoryTemplate(selectedPrompt === userStoryTemplate);
+    if (selectedPrompt !== userStoryTemplate) {
+      setCustomPrompt("");
+    } else {
+      // If User Story template is selected and we have initialPrompt (from scenario/test case),
+      // automatically fill it into customPrompt
+      if (initialPrompt && initialPrompt.trim()) {
+        setCustomPrompt(initialPrompt.trim());
+      }
+    }
   };
 
   const handleRepoSelect = (repoName: string) => {
@@ -93,29 +86,41 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!selectedRepo || !prompt.trim()) {
+    if (!prompt.trim()) {
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const resultAction = await dispatch(runCodex({
-        prompt: prompt.trim(),
-        repo_label: selectedRepo,
-      }));
+      let finalPrompt = prompt.trim();
       
-      if (runCodex.fulfilled.match(resultAction)) {
-        const task = resultAction.payload;
-        if (onScanStart) {
-          onScanStart(task);
+      // Check if the current prompt is the userStoryTemplate
+      if (prompt.trim() === userStoryTemplate.trim()) {
+        // If user selected User Story template, use the custom prompt to replace {{ prompt }}
+        if (!customPrompt.trim()) {
+          alert('Vui lòng nhập User Story để thay thế cho "{{ prompt }}" trong template.');
+          setIsSubmitting(false);
+          return;
         }
-        onClose();
+        finalPrompt = renderUserStoryTemplate(customPrompt.trim());
       } else {
-        // Error is handled by Redux slice
-        console.error('Failed to start scan:', resultAction.error);
+        // For regular prompts, use as is
+        finalPrompt = prompt;
       }
+      
+      // Create ChatGPT Codex URL
+      const codexUrl = createCodexUrl(finalPrompt);
+      
+      // Open ChatGPT Codex in a new tab
+      window.open(codexUrl, '_blank');
+      
+      
+      // if (onScanStart) {
+      //   onScanStart(mockTask);
+      // }
+      onClose();
     } catch (error) {
-      console.error('Failed to start scan:', error);
+      console.error('Failed to open ChatGPT Codex:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -123,8 +128,10 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
 
   const resetForm = () => {
     setPrompt("");
+    setCustomPrompt("");
     setSelectedRepo(null);
     setShowRepoSelector(false);
+    setIsUserStoryTemplate(false);
   };
 
   const handleClose = () => {
@@ -134,14 +141,14 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Bug className="w-6 h-6 text-blue-600" />
-            ByeBug - Advanced Bug & Vulnerability Scanner
+            ByeBug - ChatGPT Codex Integration
           </DialogTitle>
           <DialogDescription>
-            Configure your repository scan with custom prompts and target selection
+            Create User Stories and open them in ChatGPT Codex for advanced analysis
           </DialogDescription>
         </DialogHeader>
 
@@ -149,32 +156,60 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
           <div className="space-y-6 overflow-y-auto">
             {/* Scan Prompt Templates */}
             <div>
-              <h3 className="text-sm font-medium mb-3">Quick Start Templates</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                <Code className="w-4 h-4 text-blue-600" />
+                Analysis Template
+              </h3>
+              <div className="space-y-3 m-4">
                 {scanPrompts.map((template) => {
                   const IconComponent = template.icon;
+                  const isSelected = prompt === template.prompt;
                   return (
                     <Card 
                       key={template.id} 
-                      className={`cursor-pointer transition-all hover:shadow-md border-2 ${
-                        prompt === template.prompt 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:border-gray-300'
+                      className={`cursor-pointer transition-all duration-200 border-2 transform hover:scale-[1.02] select-none ${
+                        isSelected
+                          ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg' 
+                          : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
                       }`}
-                      onClick={() => handlePromptSelect(template.prompt)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handlePromptSelect(template.prompt);
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                          <div className={`p-2 rounded-lg ${
-                            prompt === template.prompt 
-                              ? 'bg-blue-100 text-blue-600' 
-                              : 'bg-gray-100 text-gray-600'
+                          <div className={`p-3 rounded-xl transition-all duration-200 ${
+                            isSelected
+                              ? 'bg-blue-500 text-white shadow-lg' 
+                              : 'bg-gray-100 text-gray-600 group-hover:bg-blue-100'
                           }`}>
-                            <IconComponent className="w-5 h-5" />
+                            <IconComponent className="w-6 h-6" />
                           </div>
                           <div className="flex-1">
-                            <h4 className="font-medium text-sm mb-1">{template.title}</h4>
-                            <p className="text-xs text-gray-600">{template.description}</p>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className={`font-semibold text-base ${
+                                isSelected ? 'text-blue-700' : 'text-gray-900'
+                              }`}>{template.title}</h4>
+                              {isSelected && (
+                                <div className="flex items-center gap-1 text-blue-600">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                  <span className="text-xs font-medium">Selected</span>
+                                </div>
+                              )}
+                            </div>
+                            <p className={`text-sm ${
+                              isSelected ? 'text-blue-600' : 'text-gray-600'
+                            }`}>{template.description}</p>
+                            {isSelected && (
+                              <div className="mt-2 text-xs text-blue-500 font-medium">
+                                ✓ Ready to analyze your code with User Story context
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -185,7 +220,7 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
             </div>
 
             {/* Custom Prompt */}
-            <div>
+            <div className="m-4">
               <label className="block text-sm font-medium mb-2">
                 Custom Prompt (Optional)
               </label>
@@ -193,13 +228,31 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
                 placeholder="Enter a custom scanning prompt or use one of the templates above..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                rows={4}
+                rows={7}
                 className="resize-none"
               />
+              
+              {isUserStoryTemplate && (
+                <div className="mt-4 space-y-2">
+                  <label className="block text-sm font-medium">
+                    User Story
+                  </label>
+                  <Textarea
+                    placeholder="Enter your user story (e.g., As a user, I want to login so that I can access my account)"
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    rows={2}
+                    className="resize-none"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    This will replace the {"{{ prompt }}"} placeholder in the User Story template.
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Repository Selection */}
-            <div>
+            {/* Repository Selection - Hidden for ChatGPT Codex integration */}
+            {/* <div>
               <label className="block text-sm font-medium mb-2">
                 Repository *
               </label>
@@ -275,10 +328,10 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
                   </CardContent>
                 </Card>
               )}
-            </div>
+            </div> */}
 
-            {/* Selected Repository Display */}
-            {selectedRepo && !showRepoSelector && (
+            {/* Selected Repository Display - Hidden for ChatGPT Codex integration */}
+            {/* {selectedRepo && !showRepoSelector && (
               <Card className="bg-green-50 border-green-200">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
@@ -290,14 +343,14 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
                   </div>
                 </CardContent>
               </Card>
-            )}
+            )} */}
 
-            {/* Scan Info */}
+            {/* ChatGPT Codex Info */}
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-4">
                 <div className="text-center text-sm text-blue-700">
-                  <p className="font-medium mb-1">Scan Information</p>
-                  <p className="text-xs">Scans typically take 2-5 minutes depending on repository size</p>
+                  <p className="font-medium mb-1">ChatGPT Codex Integration</p>
+                  <p className="text-xs">Generate user stories and open them in ChatGPT Codex for advanced analysis</p>
                 </div>
               </CardContent>
             </Card>
@@ -310,18 +363,18 @@ const ScanSetupModal: React.FC<ScanSetupModalProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !selectedRepo || !prompt.trim()}
+            disabled={isSubmitting || !prompt.trim()}
             className="min-w-[120px]"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Starting...
+                Opening...
               </>
             ) : (
               <>
-                <Play className="w-4 h-4 mr-2" />
-                Start Scan
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open in Codex
               </>
             )}
           </Button>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import { Plus, Edit3, History, RefreshCw, Eye, ChevronDown, ChevronRight, Trash2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +13,8 @@ import ScanSetupModal from '../ScanSetupModal';
 import { scenarioService, Scenario, CreateScenarioData } from '@/services/scenarioService';
 import { CodexTask } from '@/services/codexService';
 import { testCaseService, CreateTestCaseData } from '@/services/testCaseService';
+import { createBug } from '@/store/slices/bugSlice';
+import { AppDispatch } from '@/store/store';
 import { useToast } from '@/hooks/use-toast';
 
 interface TestRun {
@@ -50,6 +53,7 @@ interface TestScenariosTabProps {
 }
 
 const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
+  const dispatch = useDispatch<AppDispatch>();
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedScenarios, setExpandedScenarios] = useState<string[]>([]);
@@ -228,7 +232,7 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
     }
   };
 
-  const handleScanStart = (task: CodexTask) => {
+  const handleScanStart = async (task: CodexTask) => {
     if (!selectedScenario) return;
 
     console.log('🚀 Starting security scan for scenario:', selectedScenario.name);
@@ -249,41 +253,55 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
       description: `Security scan initiated for scenario: ${selectedScenario.name}`,
     });
 
-    // Simulate scan execution
-    setTimeout(() => {
-      const mockResults = {
-        scanId: `scan_${Date.now()}`,
-        scenarioId: selectedScenario.id,
-        scenarioName: selectedScenario.name,
-        prompt: task.prompt,
-        repository: task.repo_label,
-        startTime: new Date().toISOString(),
-        findings: [
-          {
-            type: 'security',
-            severity: 'high',
-            description: 'SQL injection vulnerability detected',
-            location: 'authentication module'
-          },
-          {
-            type: 'security',
-            severity: 'medium',
-            description: 'Weak password policy',
-            location: 'user registration'
-          },
-          {
-            type: 'performance',
-            severity: 'low',
-            description: 'Inefficient query execution',
-            location: 'data retrieval layer'
-          }
-        ],
-        status: 'completed',
-        duration: '4.7s'
-      };
+    try {
+      // Simulate scan findings - in real implementation, this would come from actual scan results
+      const mockFindings = [
+        {
+          type: 'security',
+          severity: 'high',
+          description: 'SQL injection vulnerability detected in authentication module',
+          location: 'authentication module'
+        },
+        {
+          type: 'security', 
+          severity: 'medium',
+          description: 'Weak password policy in user registration',
+          location: 'user registration'
+        },
+        {
+          type: 'performance',
+          severity: 'low', 
+          description: 'Inefficient query execution in data retrieval layer',
+          location: 'data retrieval layer'
+        }
+      ];
 
-      // Update scenario status to "Passed" (or "Failed" based on findings)
-      const hasHighSeverityIssues = mockResults.findings.some(f => f.severity === 'high');
+      // Create bugs for each finding
+      const bugPromises = mockFindings.map(async (finding) => {
+        const bugData = {
+          project_id: projectId,
+          scenario_id: selectedScenario.id,
+          summary: `${finding.type.toUpperCase()}: ${finding.description}`,
+          description: `Scan Result:\n\nType: ${finding.type}\nSeverity: ${finding.severity}\nLocation: ${finding.location}\n\nScenario: ${selectedScenario.name}\nPrompt: ${task.prompt}`,
+          severity: finding.severity,
+          status: 'open',
+          created_by: 'Security Scanner',
+          environment: {
+            scan_id: `scan_${Date.now()}`,
+            scenario_name: selectedScenario.name,
+            scan_type: 'security',
+            finding_type: finding.type
+          }
+        };
+
+        return dispatch(createBug(bugData));
+      });
+
+      // Wait for all bugs to be created
+      await Promise.all(bugPromises);
+
+      // Update scenario status based on findings
+      const hasHighSeverityIssues = mockFindings.some(f => f.severity === 'high');
       setScenarioStatuses(prev => ({
         ...prev,
         [selectedScenario.id]: hasHighSeverityIssues ? 'Failed' : 'Passed'
@@ -292,13 +310,28 @@ const TestScenariosTab: React.FC<TestScenariosTabProps> = ({ projectId }) => {
       // Show completion toast
       toast({
         title: "Scan Completed",
-        description: `Security scan finished for ${selectedScenario.name}. Found ${mockResults.findings.length} issues.`,
+        description: `Security scan finished for ${selectedScenario.name}. Created ${mockFindings.length} bug reports.`,
         variant: hasHighSeverityIssues ? "destructive" : "default"
       });
 
       console.log('✅ Scan completed for:', selectedScenario.name);
-      console.log('📊 Results:', mockResults);
-    }, 4000);
+      console.log('📊 Created bugs for findings:', mockFindings.length);
+
+    } catch (error) {
+      console.error('Failed to process scan results:', error);
+      
+      // Update scenario status to failed
+      setScenarioStatuses(prev => ({
+        ...prev,
+        [selectedScenario.id]: 'Failed'
+      }));
+
+      toast({
+        title: "Scan Failed",
+        description: `Failed to process scan results for ${selectedScenario.name}. Please try again.`,
+        variant: "destructive"
+      });
+    }
 
     // Reset selected scenario
     setSelectedScenario(null);

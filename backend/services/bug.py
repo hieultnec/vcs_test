@@ -46,6 +46,59 @@ class BugService:
             logger.error(f"[create_bug] Error creating bug: {e}", exc_info=True)
             raise e
 
+    @staticmethod
+    def create_bugs_batch(data):
+        """Create multiple bugs in batch."""
+        try:
+            client = get_connection()
+            db = client[MONGODB_DATABASE]
+            logger.debug(f"[create_bugs_batch] Connected to DB: {MONGODB_DATABASE} at {client.address}")
+
+            now = datetime.utcnow()
+            project_id = str(data['project_id'])
+            task_id = data.get('task_id')
+            scenario_id = data.get('scenario_id')
+            bugs_data = data['bugs']
+
+            # Prepare bug documents
+            bug_docs = []
+            for bug_data in bugs_data:
+                bug_id = str(uuid.uuid4())
+                bug_doc = {
+                    'bug_id': bug_id,
+                    'project_id': project_id,
+                    'task_id': task_id,
+                    'scenario_id': scenario_id,
+                    'summary': bug_data['summary'],
+                    'description': bug_data['description'],
+                    'status': bug_data.get('status', 'open'),
+                    'severity': bug_data['severity'],
+                    'created_at': now,
+                    'updated_at': now,
+                    'created_by': bug_data.get('created_by', 'system'),
+                    'environment': bug_data.get('environment', {})
+                }
+                bug_docs.append(bug_doc)
+
+            logger.debug(f"[create_bugs_batch] Inserting {len(bug_docs)} bugs")
+            result = db.bugs.insert_many(bug_docs)
+            
+            # Add _id to each document
+            for i, inserted_id in enumerate(result.inserted_ids):
+                bug_docs[i]['_id'] = str(inserted_id)
+
+            logger.info(f"[create_bugs_batch] {len(bug_docs)} bugs created successfully")
+            return {
+                'project_id': project_id,
+                'task_id': task_id,
+                'scenario_id': scenario_id,
+                'bugs': bug_docs,
+                'total_created': len(bug_docs)
+            }
+        except Exception as e:
+            logger.error(f"[create_bugs_batch] Error creating bugs batch: {e}", exc_info=True)
+            raise e
+
 
     @staticmethod
     def get_bugs(project_id, filters=None):
@@ -529,3 +582,6 @@ def get_execution_bugs(execution_id):
 
 def get_bug_reports(project_id, start_date=None, end_date=None, group_by='status'):
     return BugService.get_bug_reports(project_id, start_date, end_date, group_by)
+
+def create_bugs_batch(data):
+    return BugService.create_bugs_batch(data)

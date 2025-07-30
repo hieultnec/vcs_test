@@ -45,6 +45,28 @@ export interface CreateBugFixData {
   fix_status: string;
 }
 
+export interface CreateBugsBatchData {
+  project_id: string;
+  task_id?: string;
+  scenario_id?: string;
+  bugs: {
+    summary: string;
+    description: string;
+    severity: string;
+    status?: string;
+    created_by?: string;
+    environment?: Record<string, unknown>;
+  }[];
+}
+
+export interface CreateBugsBatchResponse {
+  project_id: string;
+  task_id?: string;
+  scenario_id?: string;
+  bugs: Bug[];
+  total_created: number;
+}
+
 export interface ApiResponse<T> {
   status: number;
   message: string;
@@ -239,6 +261,30 @@ export const bugService = {
     } catch (error) {
       const apiError = ApiErrorHandler.handleError(error);
       console.error(`Failed to fetch bug fixes for bug ${bugId}:`, apiError);
+      throw new Error(ApiErrorHandler.getErrorMessage(apiError));
+    }
+  },
+
+  // Create bugs in batch
+  async createBugsBatch(data: CreateBugsBatchData): Promise<CreateBugsBatchResponse> {
+    try {
+      const response = await apiClient.post('/api/bug/create_batch', data);
+      if (isApiResponse<any>(response.data)) {
+        if (!response.data.result) {
+          throw new Error('Failed to create bugs batch');
+        }
+        return {
+          ...response.data.result,
+          bugs: response.data.result.bugs.map(mapApiBugToBug)
+        };
+      }
+      return {
+        ...response.data,
+        bugs: response.data.bugs.map(mapApiBugToBug)
+      };
+    } catch (error) {
+      const apiError = ApiErrorHandler.handleError(error);
+      console.error('Failed to create bugs batch:', apiError);
       throw new Error(ApiErrorHandler.getErrorMessage(apiError));
     }
   },

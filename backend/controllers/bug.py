@@ -20,6 +20,36 @@ def create_bug():
         logger.error(f"Failed to create bug: {str(e)}")
         return return_status(500, str(e))
 
+def create_bugs_batch():
+    """Create multiple bugs in batch."""
+    try:
+        from services import bug
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['project_id', 'bugs']
+        for field in required_fields:
+            if not data.get(field):
+                return return_status(400, f"{field} is required")
+        
+        # Validate bugs array
+        bugs_data = data.get('bugs')
+        if not isinstance(bugs_data, list) or len(bugs_data) == 0:
+            return return_status(400, "bugs must be a non-empty array")
+        
+        # Validate each bug in the array
+        bug_required_fields = ['summary', 'description', 'severity']
+        for i, bug_data in enumerate(bugs_data):
+            for field in bug_required_fields:
+                if not bug_data.get(field):
+                    return return_status(400, f"bugs[{i}].{field} is required")
+        
+        result = bug.create_bugs_batch(data)
+        return return_status(200, "Bugs created successfully", result)
+    except Exception as e:
+        logger.error(f"Failed to create bugs batch: {str(e)}")
+        return return_status(500, str(e))
+
 def get_bugs():
     """Get all bugs for a project with optional filters."""
     try:
@@ -29,16 +59,17 @@ def get_bugs():
             return return_status(400, "project_id is required")
         
         # Optional filters
-        filters = {
-            'status': request.args.get('status'),
-            'severity': request.args.get('severity'),
-            'task_id': request.args.get('task_id'),
-            'scenario_id': request.args.get('scenario_id')
-        }
+        # filters = {
+        #     'status': request.args.get('status'),
+        #     'severity': request.args.get('severity'),
+        #     'task_id': request.args.get('task_id'),
+        #     'scenario_id': request.args.get('scenario_id')
+        # }
         # Remove None values
-        filters = {k: v for k, v in filters.items() if v is not None}
+        # filters = {k: v for k, v in filters.items() if v is not None}
         
-        bugs = bug.get_bugs(project_id, filters)
+
+        bugs = bug.get_bugs(project_id, None)
         return return_status(200, "Success", bugs)
     except Exception as e:
         logger.error(f"Failed to get bugs: {str(e)}")

@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 
 # Import the local codex service
-from codex_service import CodexService, get_list_repos, submit_prompt
+from codex_service import CodexService, get_list_repos, submit_prompt, get_tasks_and_content
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -173,6 +173,34 @@ def run_codex():
             'message': str(e)
         }), 500
 
+@app.route('/api/codex/tasks', methods=['GET'])
+def get_codex_tasks():
+    """Get tasks from Codex and extract content from first task"""
+    try:
+        logger.info("Getting Codex tasks and content")
+        
+        result = get_tasks_and_content()
+        
+        if result.get('success'):
+            return jsonify({
+                'status': 'success',
+                'data': result.get('data'),
+                'message': 'Tasks and content extracted successfully'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'data': result,
+                'message': result.get('error', 'Failed to extract tasks and content')
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error getting Codex tasks: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({
@@ -193,7 +221,7 @@ if __name__ == '__main__':
     logger.info("  GET  /api/ping - Health check")
     logger.info("  GET  /api/codex/repos - Get repositories")
     logger.info("  POST /api/codex/submit - Submit prompt")
-    logger.info("  GET  /api/codex/task - Get latest task")
+    logger.info("  GET  /api/codex/tasks - Get tasks and content")
     logger.info("  POST /api/codex/run - Run codex (compatible endpoint)")
     
     app.run(

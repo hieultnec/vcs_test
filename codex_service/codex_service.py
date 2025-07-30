@@ -148,6 +148,81 @@ class CodexService:
         except Exception as e:
             self.logger.error(f"Error getting latest task: {e}")
             return None
+    
+    def get_tasks_and_content(self) -> Dict:
+        """Get tasks from Codex and extract content from first task
+        
+        Steps:
+        1. Open https://chat.openai.com/codex
+        2. Click on first task
+        3. Get URL
+        4. Get all content from response section
+        """
+        try:
+            self.logger.info("Starting Codex task extraction")
+            
+            # Get the directory where this script is located
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            # Create a new executor script for task extraction
+            task_extractor_path = os.path.join(script_dir, "codex_task_extractor.py")
+            
+            # Prepare command
+            cmd = [
+                sys.executable,  # Use current Python interpreter
+                task_extractor_path
+            ]
+            
+            self.logger.info(f"Running task extractor: {' '.join(cmd)}")
+            
+            # Run the command
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                cwd=script_dir,
+                timeout=300  # 5 minutes timeout
+            )
+            
+            if result.returncode == 0:
+                self.logger.info("Task extractor completed successfully")
+                try:
+                    # Parse JSON output from stdout
+                    output_data = json.loads(result.stdout.strip())
+                    return {
+                        "success": True,
+                        "data": output_data
+                    }
+                except json.JSONDecodeError:
+                    return {
+                        "success": True,
+                        "data": {
+                            "raw_output": result.stdout,
+                            "stderr": result.stderr
+                        }
+                    }
+            else:
+                self.logger.error(f"Task extractor failed with return code: {result.returncode}")
+                self.logger.error(f"Error output: {result.stderr}")
+                return {
+                    "success": False,
+                    "error": f"Execution failed with return code {result.returncode}",
+                    "stdout": result.stdout,
+                    "stderr": result.stderr
+                }
+                
+        except subprocess.TimeoutExpired:
+            self.logger.error("Task extractor timed out")
+            return {
+                "success": False,
+                "error": "Execution timed out after 5 minutes"
+            }
+        except Exception as e:
+            self.logger.error(f"Error extracting tasks: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
 
 # Global service instance
 codex_service = CodexService()
@@ -164,3 +239,7 @@ def submit_prompt(prompt: str, repo_label: str) -> Dict:
 def get_task_submitted(repo_label: str) -> Optional[Dict]:
     """Get latest submitted task"""
     return codex_service.get_task_submitted(repo_label)
+
+def get_tasks_and_content() -> Dict:
+    """Get tasks from Codex and extract content from first task"""
+    return codex_service.get_tasks_and_content()

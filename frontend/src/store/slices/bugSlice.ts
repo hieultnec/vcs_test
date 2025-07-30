@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { bugService, Bug, BugFix, CreateBugData, CreateBugFixData } from '@/services/bugService';
+import { bugService, Bug, BugFix, CreateBugData, CreateBugFixData, CreateBugsBatchData, CreateBugsBatchResponse } from '@/services/bugService';
 
 interface BugState {
   bugs: Bug[];
@@ -69,6 +69,14 @@ export const createBugFix = createAsyncThunk(
   'bugs/createBugFix',
   async (fixData: CreateBugFixData) => {
     const response = await bugService.createBugFix(fixData);
+    return response;
+  }
+);
+
+export const createBugsBatch = createAsyncThunk(
+  'bugs/createBugsBatch',
+  async (batchData: CreateBugsBatchData) => {
+    const response = await bugService.createBugsBatch(batchData);
     return response;
   }
 );
@@ -145,6 +153,10 @@ const bugSlice = createSlice({
         } else {
           state.bugFixes[bugId] = [action.payload];
         }
+      })
+      // Create Bugs Batch
+      .addCase(createBugsBatch.fulfilled, (state, action) => {
+        state.bugs.push(...action.payload.bugs);
       });
   },
 });

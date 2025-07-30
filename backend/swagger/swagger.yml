@@ -637,6 +637,87 @@ paths:
         "500":
           description: Internal server error
 
+  /api/bug/create_batch:
+    post:
+      summary: Create multiple bugs in batch
+      tags: [Bug]
+      operationId: controllers.bug.create_bugs_batch
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [project_id, bugs]
+            properties:
+              project_id:
+                type: string
+                description: Project ID
+              task_id:
+                type: string
+                description: Task ID (optional)
+              scenario_id:
+                type: string
+                description: Scenario ID (optional)
+              bugs:
+                type: array
+                description: Array of bugs to create
+                items:
+                  type: object
+                  required: [summary, description, severity]
+                  properties:
+                    summary:
+                      type: string
+                      description: Bug summary
+                    description:
+                      type: string
+                      description: Bug description
+                    severity:
+                      type: string
+                      description: Bug severity level
+                    status:
+                      type: string
+                      default: open
+                      description: Bug status
+                    created_by:
+                      type: string
+                      default: system
+                      description: Bug creator
+                    environment:
+                      type: object
+                      description: Environment information
+      responses:
+        "200":
+          description: Bugs created successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+                properties:
+                  project_id:
+                    type: string
+                  task_id:
+                    type: string
+                  scenario_id:
+                    type: string
+                  bugs:
+                    type: array
+                    items:
+                      $ref: "#/definitions/Bug"
+                  total_created:
+                    type: integer
+        "400":
+          description: Bad request - missing required fields or invalid bugs array
+        "500":
+          description: Internal server error
+
   /api/bug/list:
     get:
       summary: Get all bugs for a project

@@ -15,15 +15,18 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronDown, ChevronRight, X, Edit2 } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, X, Edit2, Search, MoreHorizontal, Filter, Download, Upload } from 'lucide-react';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
-import { fetchBugs, fetchBugFixes, createBug, updateBug, deleteBug, createBugFix } from '@/store/slices/bugSlice';
+import { fetchBugs, fetchBugFixes, createBug, updateBug, deleteBug, createBugFix, createBugsBatch } from '@/store/slices/bugSlice';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { createCodexUrl } from '@/config/scanPrompts';
+import TemplateSelector from '@/components/ui/template-selector';
 
 interface BugTabProps {
   projectId: string;
@@ -34,6 +37,9 @@ const BugTab: React.FC<BugTabProps> = ({ projectId }) => {
   const { bugs, bugFixes, loading } = useAppSelector((state) => state.bugs);
   const [expandedBugs, setExpandedBugs] = useState<Set<string>>(new Set());
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isBatchImportDialogOpen, setIsBatchImportDialogOpen] = useState(false);
+  const [isAnalyzeDialogOpen, setIsAnalyzeDialogOpen] = useState(false);
+  const [selectedBugForAnalysis, setSelectedBugForAnalysis] = useState<any>(null);
   const [filters, setFilters] = useState({
     status: 'all',
     severity: 'all',
@@ -136,7 +142,14 @@ const BugTab: React.FC<BugTabProps> = ({ projectId }) => {
     );
   };
 
-  const handleCreateBug = async (formData: any) => {
+  interface BugFormData {
+    summary: string;
+    description: string;
+    severity: string;
+    status: string;
+  }
+
+  const handleCreateBug = async (formData: BugFormData) => {
     await dispatch(createBug({
       project_id: projectId,
       ...formData,
@@ -145,7 +158,45 @@ const BugTab: React.FC<BugTabProps> = ({ projectId }) => {
     setIsCreateDialogOpen(false);
   };
 
-  const handleUpdateBug = async (bugId: string, formData: any) => {
+  const handleBatchImport = async (jsonData: string) => {
+    try {
+      const parsedData = JSON.parse(jsonData);
+      
+      // Validate the structure
+      if (!parsedData.bugs || !Array.isArray(parsedData.bugs)) {
+        throw new Error('Invalid format: "bugs" array is required');
+      }
+
+      // Preprocess the data to match backend expectations
+      const batchData = {
+        project_id: projectId,
+        task_id: parsedData.task_id || undefined,
+        scenario_id: parsedData.scenario_id || undefined,
+        bugs: parsedData.bugs.map((bug: any) => ({
+          summary: bug.summary || '',
+          description: bug.description || '',
+          severity: bug.severity?.toLowerCase() || 'medium',
+          status: bug.status || 'open',
+          created_by: bug.created_by || 'system',
+          environment: bug.environment || undefined
+        }))
+      };
+
+      // Validate required fields for each bug
+      for (const bug of batchData.bugs) {
+        if (!bug.summary || !bug.description) {
+          throw new Error('Each bug must have summary and description');
+        }
+      }
+
+      await dispatch(createBugsBatch(batchData));
+      setIsBatchImportDialogOpen(false);
+    } catch (error) {
+      alert(`Error importing bugs: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleUpdateBug = async (bugId: string, formData: BugFormData) => {
     await dispatch(updateBug({ bugId, updateData: formData }));
   };
 
@@ -212,6 +263,90 @@ const BugTab: React.FC<BugTabProps> = ({ projectId }) => {
                 <DialogTitle>Create New Bug</DialogTitle>
               </DialogHeader>
               <BugForm onSubmit={handleCreateBug} mode="create" />
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isBatchImportDialogOpen} onOpenChange={setIsBatchImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Batch Import
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Batch Import Bugs</DialogTitle>
+              </DialogHeader>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const jsonData = (form.elements.namedItem('jsonData') as HTMLTextAreaElement).value;
+                  handleBatchImport(jsonData);
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="jsonData">JSON Data</Label>
+                  <Textarea
+                    id="jsonData"
+                    name="jsonData"
+                    placeholder={`{
+  "task_id": "optional_task_id",
+  "scenario_id": "optional_scenario_id",
+  "bugs": [
+    {
+      "summary": "Bug summary",
+      "description": "Bug description",
+      "severity": "Critical",
+      "status": "open",
+      "created_by": "system"
+    }
+  ]
+}`}
+                    className="min-h-[300px] font-mono text-sm"
+                    required
+                  />
+                </div>
+                <div className="text-sm text-gray-600">
+                  <p><strong>Format:</strong> JSON object with "bugs" array</p>
+                  <p><strong>Required fields per bug:</strong> summary, description</p>
+                  <p><strong>Optional fields:</strong> severity (default: medium), status (default: open), created_by (default: system), task_id, scenario_id</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1">
+                    Import Bugs
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                      const form = document.querySelector('form') as HTMLFormElement;
+                      const jsonData = (form.elements.namedItem('jsonData') as HTMLTextAreaElement).value;
+                      if (!jsonData.trim()) {
+                        alert('Please enter JSON data first');
+                        return;
+                      }
+                      
+                      try {
+                        // Validate JSON format
+                        JSON.parse(jsonData);
+                        
+                        // Create analysis prompt with the JSON data
+                        const analysisPrompt = `Analyze the following bug report data and provide insights:\n\n${jsonData}\n\nPlease review each bug for:\n- Severity assessment\n- Potential security implications\n- Recommended fixes\n- Priority ranking`;
+                        
+                        // Open ChatGPT Codex with the analysis prompt
+                        const codexUrl = createCodexUrl(analysisPrompt);
+                        window.open(codexUrl, '_blank');
+                      } catch (error) {
+                        alert('Invalid JSON format. Please check your data.');
+                      }
+                    }}
+                  >
+                    Run Analysis
+                  </Button>
+                </div>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
@@ -296,32 +431,47 @@ const BugTab: React.FC<BugTabProps> = ({ projectId }) => {
                     </TableCell>
                     <TableCell>{new Date(bug.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Edit Bug</DialogTitle>
-                            </DialogHeader>
-                            <BugForm
-                              onSubmit={(formData) => handleUpdateBug(bug.id, formData)}
-                              initialData={bug}
-                              mode="edit"
-                            />
-                          </DialogContent>
-                        </Dialog>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteBug(bug.id)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedBugForAnalysis(bug);
+                            setIsAnalyzeDialogOpen(true);
+                          }}>
+                            <Search className="mr-2 h-4 w-4" />
+                            Analyze
+                          </DropdownMenuItem>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <Edit2 className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Edit Bug</DialogTitle>
+                              </DialogHeader>
+                              <BugForm
+                                onSubmit={(formData) => handleUpdateBug(bug.id, formData)}
+                                initialData={bug}
+                                mode="edit"
+                              />
+                            </DialogContent>
+                          </Dialog>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteBug(bug.id)}
+                            className="text-red-600"
+                          >
+                            <X className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                   {expandedBugs.has(bug.id) && (
@@ -376,6 +526,21 @@ const BugTab: React.FC<BugTabProps> = ({ projectId }) => {
           </Table>
         </div>
       </CardContent>
+      
+      {/* Template Selector for Bug Analysis */}
+      <TemplateSelector
+        isOpen={isAnalyzeDialogOpen}
+        onClose={() => {
+          setIsAnalyzeDialogOpen(false);
+          setSelectedBugForAnalysis(null);
+        }}
+        initialPrompt={selectedBugForAnalysis ? 
+          `Analyze this bug report:\n\nSummary: ${selectedBugForAnalysis.summary}\nDescription: ${selectedBugForAnalysis.description}\nSeverity: ${selectedBugForAnalysis.severity}\nStatus: ${selectedBugForAnalysis.status}` 
+          : undefined
+        }
+        title="Bug Analysis"
+        description="Analyze the selected bug using AI templates"
+      />
     </Card>
   );
 };

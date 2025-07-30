@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Optional
 
 # Configuration for Codex API service
-CODEX_API_BASE_URL = "http://localhost:5137/api/codex"
+CODEX_API_BASE_URL = "http://192.168.5.11:5137/api/codex"
 LOGS_DIR = "logs"
 
 class CodexService:

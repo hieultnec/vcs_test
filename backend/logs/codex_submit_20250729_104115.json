@@ -1,2 +1,0 @@
-{"timestamp": "2025-07-29T10:41:15.340322+00:00", "message": "\ud83d\ude80 Starting prompt submission: Login Load Test"}
-{"timestamp": "2025-07-29T10:41:18.492488+00:00", "message": "\u274c Exception: Message: Service /root/.cache/selenium/chromedriver/linux64/114.0.5735.90/chromedriver unexpectedly exited. Status code was: 127\n"}

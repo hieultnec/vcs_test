@@ -1,0 +1,2 @@
+{"timestamp": "2025-07-30T01:51:31.632689+00:00", "message": "Submitting prompt to repository: innolabvn/asset-management"}
+{"timestamp": "2025-07-30T01:51:31.645763+00:00", "message": "API Error: HTTPConnectionPool(host='localhost', port=5137): Max retries exceeded with url: /api/codex/submit (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7fb198cf9b50>: Failed to establish a new connection: [Errno 111] Connection refused'))"}

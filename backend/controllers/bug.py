@@ -14,6 +14,18 @@ def create_bug():
             if not data.get(field):
                 return return_status(400, f"{field} is required")
         
+        # Validate images field if provided
+        images = data.get('images', [])
+        if images:
+            if not isinstance(images, list):
+                return return_status(400, "images must be an array")
+            if len(images) > 10:  # Max 10 images
+                return return_status(400, "Maximum 10 images allowed")
+            # Basic validation for base64 format
+            for i, image in enumerate(images):
+                if not isinstance(image, str) or not image.startswith('data:image/'):
+                    return return_status(400, f"Image {i+1} must be a valid base64 data URL")
+        
         result = bug.create_bug(data)
         return return_status(200, "Bug created successfully", result)
     except Exception as e:
@@ -43,6 +55,18 @@ def create_bugs_batch():
             for field in bug_required_fields:
                 if not bug_data.get(field):
                     return return_status(400, f"bugs[{i}].{field} is required")
+            
+            # Validate images field if provided for each bug
+            images = bug_data.get('images', [])
+            if images:
+                if not isinstance(images, list):
+                    return return_status(400, f"bugs[{i}].images must be an array")
+                if len(images) > 10:  # Max 10 images
+                    return return_status(400, f"bugs[{i}] maximum 10 images allowed")
+                # Basic validation for base64 format
+                for j, image in enumerate(images):
+                    if not isinstance(image, str) or not image.startswith('data:image/'):
+                        return return_status(400, f"bugs[{i}].images[{j}] must be a valid base64 data URL")
         
         result = bug.create_bugs_batch(data)
         return return_status(200, "Bugs created successfully", result)
@@ -138,6 +162,18 @@ def create_bug_fix():
         for field in required_fields:
             if not data.get(field):
                 return return_status(400, f"{field} is required")
+        
+        # Validate images field if provided
+        images = data.get('images', [])
+        if images:
+            if not isinstance(images, list):
+                return return_status(400, "images must be an array")
+            if len(images) > 10:  # Max 10 images
+                return return_status(400, "Maximum 10 images allowed")
+            # Basic validation for base64 format
+            for i, image in enumerate(images):
+                if not isinstance(image, str) or not image.startswith('data:image/'):
+                    return return_status(400, f"Image {i+1} must be a valid base64 data URL")
         
         result = bug.create_bug_fix(data)
         return return_status(200, "Bug fix created successfully", result)

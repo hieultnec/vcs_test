@@ -30,6 +30,7 @@ class BugService:
                 'description': data['description'],
                 'status': data.get('status', 'open'),
                 'severity': data['severity'],
+                'images': data.get('images', []),  # Array of base64 images
                 'created_at': now,
                 'updated_at': now,
                 'created_by': data.get('created_by', 'system'),
@@ -73,6 +74,7 @@ class BugService:
                     'description': bug_data['description'],
                     'status': bug_data.get('status', 'open'),
                     'severity': bug_data['severity'],
+                    'images': bug_data.get('images', []),  # Array of base64 images
                     'created_at': now,
                     'updated_at': now,
                     'created_by': bug_data.get('created_by', 'system'),
@@ -216,6 +218,7 @@ class BugService:
                 'fix_status': data.get('fix_status', 'pending'),
                 'fixed_by': data['fixed_by'],
                 'verified_by': data.get('verified_by'),
+                'images': data.get('images', []),  # Array of base64 images
                 'fixed_at': now,
                 'verified_at': None
             }

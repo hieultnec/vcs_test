@@ -225,12 +225,3 @@ export const createCodexUrl = (prompt: string): string => {
   const encodedPrompt = encodeURIComponent(prompt);
   return `https://chatgpt.com/codex/?prompt=${encodedPrompt}`;
 };
-
-// Export all templates for easy access
-export {
-  userStoryTemplate,
-  securityScanTemplate,
-  codeQualityScanTemplate,
-  bugFixTemplate,
-  securityFixTemplate
-};

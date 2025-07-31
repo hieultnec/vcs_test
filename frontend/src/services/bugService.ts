@@ -24,6 +24,7 @@ export interface BugFix {
   fix_status: string;
   created_at: string;
   updated_at: string;
+  images?: string[];
 }
 
 export interface CreateBugData {
@@ -43,6 +44,7 @@ export interface CreateBugFixData {
   fix_description: string;
   fixed_by: string;
   fix_status: string;
+  images?: string[];
 }
 
 export interface CreateBugsBatchData {
@@ -105,7 +107,8 @@ function mapApiBugFixToBugFix(apiBugFix: any): BugFix {
     fixed_by: apiBugFix.fixed_by,
     fix_status: apiBugFix.fix_status,
     created_at: apiBugFix.created_at,
-    updated_at: apiBugFix.updated_at
+    updated_at: apiBugFix.updated_at,
+    images: apiBugFix.images || []
   };
 }
 

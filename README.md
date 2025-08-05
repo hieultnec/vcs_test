@@ -1,128 +1,124 @@
-# e2e_auto_test - End-to-End Automated Testing Platform
+# VCS Test - E2E Auto Test Platform
 
-A comprehensive automated testing platform with document management, test scenario creation, workflow execution, and test case management capabilities.
+A comprehensive end-to-end automated testing platform that combines AI-powered test generation, execution, and management capabilities with advanced bug tracking and project management features.
 
-## 🚀 Quick Start
+## Quick Start with Docker
 
-### Docker Setup
 ```bash
-# Stop existing containers
-docker compose down
+# Clone the repository
+git clone <repository-url>
+cd vcs_test
 
-# Build and start services
-docker compose up --build -d
+# Start all services
+docker-compose up -d
+
+# Access the application
+# Frontend: http://localhost:8081
+# Backend API: http://localhost:8080
+# MongoDB: localhost:27017
 ```
 
-### Access the Application
-- **Frontend UI**: http://localhost:8080/
-- **Backend API**: http://localhost:5000/
-- **API Documentation**: http://localhost:5000/api/docs
+## Development Setup
 
-## 🏗️ Architecture Overview
+### Backend Setup
+```bash
+cd backend
+pip install -r requirements.txt
+python app.py
+```
 
-The platform consists of two main components:
+### Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-### Backend (`/backend`)
-- **Framework**: Flask with Connexion for OpenAPI/Swagger integration
-- **Database**: MongoDB with PyMongo
-- **Testing Engine**: Selenium WebDriver integration
-- **AI Integration**: Dify API for intelligent test generation
-- **Documentation**: Auto-generated Swagger/OpenAPI documentation
+### Codex Service Setup
+```bash
+cd codex_service
+pip install -r requirements.txt
+python codex_service.py
+```
 
-### Frontend (`/frontend`)
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite
-- **UI Library**: Radix UI components with Tailwind CSS
-- **State Management**: Redux Toolkit + React Query
-- **Routing**: React Router DOM
-- **Form Handling**: React Hook Form with Zod validation
+## Architecture Overview
 
-## 🔧 Backend Features & Functions
+### Backend (Flask + MongoDB + Selenium + AI Integration)
+- **Flask**: RESTful API server with comprehensive endpoints
+- **MongoDB**: Document database for storing projects, test cases, bugs, and results
+- **Selenium**: Web automation framework for test execution
+- **AI Integration**: Intelligent test case generation and analysis
+- **Bug Tracking**: Advanced bug management with fix history
+- **File Management**: Image upload and storage capabilities
+
+### Frontend (React + TypeScript + Modern UI)
+- **React 18**: Modern UI framework with hooks and TypeScript
+- **Vite**: Fast build tool and development server
+- **Radix UI**: Accessible component library with shadcn/ui
+- **Redux Toolkit**: State management with RTK Query
+- **React Router**: Client-side routing
+- **Tailwind CSS**: Utility-first CSS framework
+- **React Hook Form**: Form validation with Zod schema
+
+### Codex Service (AI-Powered Test Generation)
+- **AI Integration**: Automated test case generation
+- **Task Extraction**: Intelligent requirement analysis
+- **Test Execution**: Automated test running capabilities
+
+## Backend Features & Functionality
 
 ### Core Services
+1. **Project Management**
+   - Create, update, delete projects
+   - Project configuration and settings
+   - Project-based access control
+   - Project statistics and analytics
 
-#### 1. Project Management (`/controllers/project.py`)
-- **Create Project**: `POST /api/project/create`
-  - Create new test projects with metadata
-  - Support for Dify API key configuration
-  - Project ownership and versioning
-- **List Projects**: `GET /api/projects`
-  - Retrieve all projects with filtering
-  - Support for pagination and search
-- **Get Project**: `GET /api/project/get?id={id}`
-  - Fetch detailed project information
-  - Include associated documents, scenarios, and test cases
-- **Update Project**: `PUT /api/project/update`
-  - Modify project metadata and configuration
-- **Delete Project**: `DELETE /api/project/delete?id={id}`
-  - Remove projects with cascade deletion
+2. **Document Management**
+   - Upload and store project documents
+   - Document parsing and analysis
+   - Version control for documents
+   - Document-based test generation
 
-#### 2. Document Management (`/controllers/document.py`)
-- **Upload Documents**: `POST /api/document/upload`
-  - Multi-file upload support (PDF, DOC, DOCX, XLS, XLSX, TXT)
-  - Automatic metadata extraction
-  - Current document designation
-- **List Documents**: `GET /api/document/list?project_id={id}`
-  - Retrieve project documents with metadata
-- **Download Documents**: `GET /api/document/download?id={id}`
-  - Secure file download with proper headers
-- **Delete Documents**: `DELETE /api/document/delete?id={id}`
-  - Remove documents with file cleanup
-- **Set Current Document**: `PUT /api/document/set_current`
-  - Mark document as current for AI processing
+3. **Scenario Management**
+   - Create test scenarios from documents
+   - Scenario categorization and tagging
+   - Scenario execution tracking
+   - AI-powered scenario generation
 
-#### 3. Scenario Management (`/controllers/scenario.py`)
-- **Save Scenarios**: `POST /api/scenario/save`
-  - Create test scenarios from manual input
-  - Support for multiple scenarios per project
-- **Save from Workflow**: `POST /api/scenario/save_from_workflow`
-  - Generate scenarios from workflow execution
-  - AI-powered scenario creation
-- **List Scenarios**: `GET /api/scenario/list?project_id={id}`
-  - Retrieve scenarios with test cases
-- **Update Scenarios**: `PUT /api/scenario/update`
-  - Modify scenario details and test cases
+4. **Test Case Management**
+   - Generate test cases from scenarios
+   - Manual test case creation and editing
+   - Test case validation and review
+   - Batch test case operations
 
-#### 4. Test Case Management (`/controllers/task.py`)
-- **Create Test Case**: `POST /api/test_case/create`
-  - Manual test case creation with steps
-  - Expected results and status tracking
-- **Save Test Cases**: `POST /api/test_case/save`
-  - Bulk test case creation
-- **List Test Cases**: `GET /api/test_case/list?scenario_id={id}`
-  - Retrieve test cases by scenario
-- **Update Test Case**: `PUT /api/test_case/update`
-  - Modify test case details and status
-- **Delete Test Case**: `DELETE /api/test_case/delete?id={id}`
-  - Remove test cases
+5. **Bug Tracking System**
+   - Create bugs from test failures or manual input
+   - Bug severity and status management
+   - Bug fix history with image support
+   - Batch bug creation and management
+   - Bug verification workflow
 
-#### 5. Test Execution (`/controllers/task.py`)
-- **Record Test Run**: `POST /api/test_run/record`
-  - Log test execution results
-  - Support for attachments and logs
-- **List Test Runs**: `GET /api/test_run/list_by_case?test_case_id={id}`
-  - Retrieve test execution history
-- **Get Latest Run**: `GET /api/test_run/latest?test_case_id={id}`
-  - Fetch most recent test execution
-- **Update Test Run**: `PUT /api/test_run/update`
-  - Modify test run details
+6. **Test Execution**
+   - Automated test execution with Selenium
+   - Real-time execution monitoring
+   - Result capture and analysis
+   - Failure screenshot capture
 
-#### 6. Workflow Management (`/controllers/workflow.py`)
-- **Execute Workflow**: `POST /api/workflow/execute`
-  - Run automated test workflows
-  - Selenium WebDriver integration
-  - Real-time execution monitoring
-- **Get Workflow Status**: `GET /api/workflow/status?execution_id={id}`
-  - Monitor workflow execution progress
-- **List Workflows**: `GET /api/workflow/list?project_id={id}`
-  - Retrieve workflow definitions
+7. **Workflow Management**
+   - Define custom testing workflows
+   - Workflow automation and scheduling
+   - Integration with CI/CD pipelines
 
-#### 7. Configuration Management (`/controllers/config.py`)
-- **Get Configuration**: `GET /api/config/get?project_id={id}`
-  - Retrieve project-specific settings
-- **Update Configuration**: `PUT /api/config/update`
-  - Modify project configuration
-- **Dify Integration**: AI-powered test generation settings
+8. **File Management**
+   - Image upload and storage
+   - Base64 image handling
+   - File validation and security
+
+9. **Configuration Management**
+   - Environment configuration
+   - Test data management
+   - Browser and device settings
 
 ### AI Integration Services
 
@@ -189,33 +185,83 @@ The platform consists of two main components:
 }
 ```
 
-## 🎨 Frontend Features & Functions
+## Frontend Features & Functionality
 
-### Core Pages
+### Main Pages & Components
+1. **Dashboard**
+   - Project overview and statistics
+   - Recent activity feed
+   - Quick access to common actions
+   - System health monitoring
 
-#### 1. Dashboard (`/pages/Dashboard.tsx`)
-- **Project Overview**: Display all projects with search and filtering
-- **Quick Actions**: Create new projects, view recent activity
-- **Status Monitoring**: Visual indicators for project status
-- **Navigation Hub**: Central access point to all features
+2. **Project Detail**
+   - Project information and settings
+   - Document management interface
+   - Scenario and test case views
+   - Bug tracking and management
+   - Execution history and reports
 
-#### 2. Project Creation (`/pages/CreateProject.tsx`)
-- **Project Setup**: Comprehensive project creation form
-- **Dify Integration**: API key configuration for AI features
-- **Document Upload**: Initial document upload during creation
-- **Validation**: Form validation with error handling
+3. **Document Management**
+   - File upload with drag-and-drop
+   - Document preview and editing
+   - Document categorization
+   - Search and filtering
+   - AI-powered document analysis
 
-#### 3. Project Detail (`/pages/ProjectDetail.tsx`)
-- **Multi-tab Interface**: Organized project management
-- **Real-time Updates**: Live data synchronization
-- **Document Management**: Integrated document handling
-- **Test Management**: Scenario and test case management
+4. **Scenario Management**
+   - Scenario creation and editing
+   - Visual scenario builder
+   - Scenario execution controls
+   - Results visualization
+   - AI-generated scenarios
 
-#### 4. Version History (`/pages/VersionHistory.tsx`)
-- **Change Tracking**: Complete version history
-- **Diff Viewing**: Visual comparison of changes
-- **Rollback Support**: Version restoration capabilities
-- **Timeline View**: Chronological change tracking
+5. **Test Case Management**
+   - Test case editor with syntax highlighting
+   - Test case organization and grouping
+   - Bulk operations on test cases
+   - Test case execution tracking
+   - Automated test generation
+
+6. **Bug Tracking System**
+   - Comprehensive bug management interface
+   - Bug creation from test failures
+   - Bug severity and status filtering
+   - Fix history with image support
+   - Batch bug import functionality
+   - Image modal viewer for bug screenshots
+   - Bug verification workflow
+
+7. **Test Execution**
+   - Real-time execution dashboard
+   - Live logs and screenshots
+   - Execution queue management
+   - Result analysis tools
+   - Automatic bug creation on failures
+
+8. **Workflow Management**
+   - Visual workflow designer
+   - Workflow templates
+   - Scheduling and automation
+   - Integration settings
+
+9. **Report & Analytics**
+   - Test execution reports
+   - Bug tracking analytics
+   - Performance metrics
+   - Trend analysis
+   - Export capabilities
+
+10. **User Management**
+    - User roles and permissions
+    - Team collaboration features
+    - Activity logging
+    - Profile management
+
+11. **Settings**
+    - System configuration
+    - Integration settings
+    - Notification preferences
+    - Theme and appearance
 
 ### Core Components
 

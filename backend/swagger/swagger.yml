@@ -14,6 +14,8 @@ tags:
     description: Workflow management endpoints
   - name: Codex
     description: Codex integration endpoints
+  - name: FixChain
+    description: FixChain AI bug detection and RAG system endpoints
 
 paths:
   /api/ping:
@@ -1238,6 +1240,424 @@ paths:
         "500":
           description: Internal server error
 
+  # FixChain API Endpoints
+  /api/fixchain/import/bug:
+    post:
+      summary: Import bug data into FixChain
+      tags: [FixChain]
+      operationId: controllers.fixchain.import_bug
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [bug]
+            properties:
+              bug:
+                $ref: "#/definitions/FixChainBug"
+      responses:
+        "200":
+          description: Bug imported successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+              result:
+                type: object
+        "400":
+          description: Bad request - invalid input
+        "500":
+          description: Internal server error
+
+  /api/fixchain/import/bugs/batch:
+    post:
+      summary: Import multiple bugs in batch
+      tags: [FixChain]
+      operationId: controllers.fixchain.import_bugs_batch
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [bugs]
+            properties:
+              bugs:
+                type: array
+                items:
+                  $ref: "#/definitions/FixChainBug"
+              batch_metadata:
+                type: object
+      responses:
+        "200":
+          description: Bugs imported successfully
+        "400":
+          description: Bad request - invalid input
+        "500":
+          description: Internal server error
+
+  /api/fixchain/import/vectordb:
+    post:
+      summary: Import reasoning data into FixChain RAG
+      tags: [FixChain]
+      operationId: controllers.fixchain.import_vectordb
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [reasoning]
+            properties:
+              reasoning:
+                $ref: "#/definitions/FixChainReasoning"
+              generate_embedding:
+                type: boolean
+                default: false
+              embedding_config:
+                type: object
+      responses:
+        "200":
+          description: Reasoning data imported successfully
+        "400":
+          description: Bad request - invalid input
+        "500":
+          description: Internal server error
+
+  /api/fixchain/import/vectordb/batch:
+    post:
+      summary: Import multiple reasoning entries in batch
+      tags: [FixChain]
+      operationId: controllers.fixchain.import_vectordb_batch
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [reasoning_entries]
+            properties:
+              reasoning_entries:
+                type: array
+                items:
+                  $ref: "#/definitions/FixChainReasoning"
+              batch_metadata:
+                type: object
+              generate_embeddings:
+                type: boolean
+                default: false
+      responses:
+        "200":
+          description: Reasoning entries imported successfully
+        "400":
+          description: Bad request - invalid input
+        "500":
+          description: Internal server error
+
+  /api/fixchain/import/session:
+    post:
+      summary: Import execution session data
+      tags: [FixChain]
+      operationId: controllers.fixchain.import_session
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [session]
+            properties:
+              session:
+                $ref: "#/definitions/FixChainSession"
+      responses:
+        "200":
+          description: Session imported successfully
+        "400":
+          description: Bad request - invalid input
+        "500":
+          description: Internal server error
+
+  /api/fixchain/import/bulk:
+    post:
+      summary: Bulk import mixed data (bugs, reasoning, sessions)
+      tags: [FixChain]
+      operationId: controllers.fixchain.bulk_import
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [data]
+            properties:
+              data:
+                type: object
+                properties:
+                  bugs:
+                    type: array
+                    items:
+                      $ref: "#/definitions/FixChainBug"
+                  reasoning_entries:
+                    type: array
+                    items:
+                      $ref: "#/definitions/FixChainReasoning"
+                  sessions:
+                    type: array
+                    items:
+                      $ref: "#/definitions/FixChainSession"
+              options:
+                type: object
+              metadata:
+                type: object
+      responses:
+        "200":
+          description: Bulk import completed successfully
+        "400":
+          description: Bad request - invalid input
+        "500":
+          description: Internal server error
+
+  /api/fixchain/search/bugs:
+    get:
+      summary: Search for similar bugs
+      tags: [FixChain]
+      operationId: controllers.fixchain.search_similar_bugs
+      parameters:
+        - name: source_file
+          in: query
+          type: string
+        - name: bug_type
+          in: query
+          type: string
+        - name: limit
+          in: query
+          type: integer
+          default: 10
+      responses:
+        "200":
+          description: Similar bugs found
+        "500":
+          description: Internal server error
+
+  /api/fixchain/reasoning/history:
+    get:
+      summary: Get reasoning history for a file
+      tags: [FixChain]
+      operationId: controllers.fixchain.get_reasoning_history
+      parameters:
+        - name: source_file
+          in: query
+          type: string
+        - name: test_name
+          in: query
+          type: string
+      responses:
+        "200":
+          description: Reasoning history retrieved
+        "500":
+          description: Internal server error
+
+  /api/fixchain/analytics/performance:
+    get:
+      summary: Get performance analytics
+      tags: [FixChain]
+      operationId: controllers.fixchain.get_performance_analytics
+      parameters:
+        - name: source_file
+          in: query
+          type: string
+        - name: from_date
+          in: query
+          type: string
+          format: date-time
+        - name: to_date
+          in: query
+          type: string
+          format: date-time
+      responses:
+        "200":
+          description: Performance analytics retrieved
+        "500":
+          description: Internal server error
+
+  # FixChain AI Service Direct Endpoints (Port 8000)
+  /health:
+    get:
+      summary: FixChain service health check
+      tags: [FixChain]
+      operationId: controllers.ping.health
+      responses:
+        "200":
+          description: Service is healthy
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "healthy"
+              timestamp:
+                type: string
+                format: date-time
+              rag_store_connected:
+                type: boolean
+        "503":
+          description: Service unavailable
+
+  /api/reasoning/add:
+    post:
+      summary: Add reasoning entry to RAG store
+      tags: [FixChain]
+      operationId: controllers.fixchain.add_reasoning
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [content, metadata]
+            properties:
+              content:
+                type: string
+                description: The reasoning content
+              metadata:
+                type: object
+                description: Additional metadata for the entry
+      responses:
+        "200":
+          description: Reasoning entry added successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+              doc_id:
+                type: string
+                description: Document ID of the added entry
+        "500":
+          description: Internal server error
+        "503":
+          description: RAG store not available
+
+  /api/reasoning/search:
+    post:
+      summary: Search for similar reasoning entries
+      tags: [FixChain]
+      operationId: controllers.fixchain.search_reasoning
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required: [query]
+            properties:
+              query:
+                type: string
+                description: Search query
+              k:
+                type: integer
+                default: 5
+                description: Number of results to return
+              filter_criteria:
+                type: object
+                description: Optional filter criteria
+      responses:
+        "200":
+          description: Search results
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                content:
+                  type: string
+                metadata:
+                  type: object
+                score:
+                  type: number
+                  format: float
+        "500":
+          description: Internal server error
+        "503":
+          description: RAG store not available
+
+  /api/reasoning/stats:
+    get:
+      summary: Get RAG collection statistics
+      tags: [FixChain]
+      operationId: controllers.fixchain.get_stats
+      responses:
+        "200":
+          description: Collection statistics
+          schema:
+            type: object
+            properties:
+              total_documents:
+                type: integer
+              collection_name:
+                type: string
+              database_name:
+                type: string
+              indexes:
+                type: array
+                items:
+                  type: object
+        "500":
+          description: Internal server error
+        "503":
+          description: RAG store not available
+
+  /api/reasoning/{doc_id}:
+    delete:
+      summary: Delete a reasoning entry
+      tags: [FixChain]
+      operationId: controllers.fixchain.delete_reasoning
+      parameters:
+        - name: doc_id
+          in: path
+          required: true
+          type: string
+          description: Document ID to delete
+      responses:
+        "200":
+          description: Entry deleted successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+              message:
+                type: string
+                example: "Entry deleted"
+        "404":
+          description: Entry not found
+        "500":
+          description: Internal server error
+        "503":
+          description: RAG store not available
+
 
 definitions:
   Project:
@@ -1367,3 +1787,271 @@ definitions:
       updated_at:
         type: string
         format: date-time
+
+  # FixChain Definitions
+  FixChainBug:
+    type: object
+    required:
+      - source_file
+      - bug_type
+      - severity
+      - line_number
+      - description
+      - status
+    properties:
+      bug_id:
+        type: string
+        description: Unique identifier for the bug
+      source_file:
+        type: string
+        description: Path to the source file containing the bug
+      bug_type:
+        type: string
+        description: Type of bug detected
+      severity:
+        type: string
+        description: Severity level of the bug
+      line_number:
+        type: integer
+        description: Line number where the bug is located
+      column_number:
+        type: integer
+        description: Column number where the bug is located
+      description:
+        type: string
+        description: Detailed description of the bug
+      code_snippet:
+        type: string
+        description: Code snippet containing the bug
+      suggested_fix:
+        type: string
+        x-nullable: true
+        description: AI-suggested fix for the bug
+      actual_fix:
+        type: string
+        x-nullable: true
+        description: Actual fix applied by human
+      detection_method:
+        type: string
+        enum: [static_analysis, dynamic_analysis, manual_review, ai_detection]
+        default: manual_review
+        description: Method used to detect the bug
+      ai_confidence:
+        type: number
+        x-nullable: true
+        minimum: 0
+        maximum: 1
+        description: AI confidence score for bug detection
+      detection_iteration:
+        type: integer
+        x-nullable: true
+        description: Iteration number when bug was detected
+      fix_iteration:
+        type: integer
+        x-nullable: true
+        description: Iteration number when bug was fixed
+      status:
+        type: string
+        enum: [detected, in_progress, fixed, verified, false_positive]
+        description: Current status of the bug
+      human_feedback:
+        type: object
+        x-nullable: true
+        properties:
+          accuracy:
+            type: string
+            enum: [correct, incorrect, partially_correct]
+          usefulness:
+            type: string
+            enum: [very_useful, useful, somewhat_useful, not_useful]
+          comments:
+            type: string
+          reviewer:
+            type: string
+          review_date:
+            type: string
+            format: date-time
+        description: Human feedback on bug detection and fix
+      related_bugs:
+        type: array
+        items:
+          type: string
+        description: List of related bug IDs
+      fix_impact:
+        type: object
+        x-nullable: true
+        properties:
+          lines_changed:
+            type: integer
+          files_affected:
+            type: array
+            items:
+              type: string
+          test_results:
+            type: object
+        description: Impact analysis of the bug fix
+
+  FixChainReasoning:
+    type: object
+    required:
+      - test_name
+      - attempt_id
+      - source_file
+      - status
+      - summary
+      - output
+    properties:
+      test_name:
+        type: string
+        description: Name of the test being executed
+      attempt_id:
+        type: string
+        description: Unique identifier for this test attempt
+      source_file:
+        type: string
+        description: Path to the source file being tested
+      status:
+        type: string
+        enum: [passed, failed, error, skipped]
+        description: Status of the test execution
+      summary:
+        type: string
+        description: Summary of the test reasoning
+      output:
+        type: string
+        description: Detailed output from the test execution
+      metadata:
+        type: object
+        properties:
+          execution_time:
+            type: number
+            description: Time taken to execute the test (in seconds)
+          memory_usage:
+            type: number
+            description: Memory usage during test execution (in MB)
+          ai_model:
+            type: string
+            description: AI model used for reasoning
+          reasoning_steps:
+            type: array
+            items:
+              type: string
+            description: Step-by-step reasoning process
+        description: Additional metadata about the test execution
+      embedding:
+        type: array
+        items:
+          type: number
+        description: Vector embedding of the reasoning content
+      human_verified:
+        type: boolean
+        default: false
+        description: Whether this reasoning has been verified by a human
+      verification_result:
+        type: object
+        properties:
+          is_correct:
+            type: boolean
+          confidence:
+            type: number
+            minimum: 0
+            maximum: 1
+          feedback:
+            type: string
+          verifier:
+            type: string
+          verification_date:
+            type: string
+            format: date-time
+        description: Human verification result
+
+  FixChainSession:
+    type: object
+    required:
+      - source_file
+      - session_number
+      - start_time
+      - end_time
+      - total_duration
+      - bugs_detected
+      - bugs_fixed
+      - overall_status
+    properties:
+      session_id:
+        type: string
+        description: Unique identifier for the execution session
+      source_file:
+        type: string
+        description: Path to the source file being processed
+      session_number:
+        type: integer
+        description: Sequential number of this session
+      test_types:
+        type: array
+        items:
+          type: string
+          enum: [unit_test, integration_test, performance_test, security_test]
+        description: Types of tests executed in this session
+      start_time:
+        type: string
+        format: date-time
+        description: Session start time
+      end_time:
+        type: string
+        format: date-time
+        description: Session end time
+      total_duration:
+        type: number
+        description: Total duration of the session (in seconds)
+      total_tokens_used:
+        type: integer
+        description: Total AI tokens consumed during the session
+      bugs_detected:
+        type: integer
+        description: Number of bugs detected in this session
+      bugs_fixed:
+        type: integer
+        description: Number of bugs fixed in this session
+      new_bugs_introduced:
+        type: integer
+        default: 0
+        description: Number of new bugs introduced during fixes
+      overall_status:
+        type: string
+        enum: [success, partial_success, failure]
+        description: Overall status of the session
+      performance_metrics:
+        type: object
+        properties:
+          accuracy_rate:
+            type: number
+            minimum: 0
+            maximum: 1
+            description: Accuracy rate of bug detection
+          false_positive_rate:
+            type: number
+            minimum: 0
+            maximum: 1
+            description: False positive rate
+          fix_success_rate:
+            type: number
+            minimum: 0
+            maximum: 1
+            description: Success rate of bug fixes
+          average_fix_time:
+            type: number
+            description: Average time to fix a bug (in seconds)
+        description: Performance metrics for this session
+      comparison_with_previous:
+        type: object
+        properties:
+          accuracy_improvement:
+            type: number
+            description: Improvement in accuracy compared to previous session
+          time_improvement:
+            type: number
+            description: Improvement in execution time compared to previous session
+          bugs_improvement:
+            type: number
+            description: Improvement in bug detection compared to previous session
+        description: Comparison metrics with previous session

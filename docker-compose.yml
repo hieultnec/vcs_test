@@ -34,6 +34,13 @@ services:
       # Selenium settings
       - SELENIUM_BROWSER=chrome
       - WEBDRIVER_CHROME_DRIVER=/usr/local/bin/chromedriver
+      # MongoDB Configuration for FixChain
+      - MONGODB_URL=mongodb://mongodb:27017
+      - MONGODB_DATABASE=SugoiApp
+      - FIXCHAIN_RAG_DATABASE=FixChainRAG
+      # FixChain Configuration
+      - FIXCHAIN_EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - FIXCHAIN_MAX_EMBEDDING_DIMENSION=384
     # Security context for Chrome
     security_opt:
       - seccomp:unconfined
@@ -55,6 +62,41 @@ services:
       retries: 3
       start_period: 40s
 
+  # FixChain AI Service
+  fixchain:
+    build:
+      context: ../FixChain
+      dockerfile: Dockerfile
+    container_name: fixchain-service
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    networks:
+      - atc_network
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_URL=mongodb://mongodb:27017
+      - MONGODB_DATABASE=SugoiApp
+      - FIXCHAIN_RAG_DATABASE=FixChainRAG
+      - FIXCHAIN_EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - FIXCHAIN_MAX_EMBEDDING_DIMENSION=384
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../FixChain:/app
+      - fixchain_logs:/app/logs
+    working_dir: /app
+    command: python server.py
+    restart: unless-stopped
+    # Health check for FixChain service
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   mongodb:
     image: mongo:latest
     networks:
@@ -62,7 +104,7 @@ services:
     env_file:
       - .env
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - lagavue_mongodb_data:/data/db
     restart: unless-stopped
@@ -107,13 +149,14 @@ networks:
     driver_opts:
       com.docker.network.driver.mtu: 1450
   sugoi_network:
-    name: sugoi_network
-    external: true
+    driver: bridge
 
 volumes:
   lagavue_backend_projects:
     driver: local
   lagavue_mongodb_data:
+    driver: local
+  fixchain_logs:
     driver: local
 
 # Additional configuration for development

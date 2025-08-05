@@ -7,7 +7,8 @@ from datetime import datetime
 from .logger import logger
 
 MONGODB_URL = os.environ.get("MONGODB_URL", "mongodb://mongodb:27017")
-MONGODB_DATABASE = os.environ.get("MONGODB_DATABASE", "docker-fastapi-mongodb")
+MONGODB_DATABASE = os.environ.get("MONGODB_DATABASE", "SugoiApp")
+FIXCHAIN_RAG_DATABASE = os.environ.get("FIXCHAIN_RAG_DATABASE", "FixChainRAG")
 
 class JSONEncoder(json.JSONEncoder):
     def default(self, o):
@@ -1201,4 +1202,4 @@ def create_bug_indexes():
         
     except Exception as e:
         logger.error(f"Error creating bug indexes: {e}")
-        raise e        
+        raise e
